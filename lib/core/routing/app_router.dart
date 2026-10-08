@@ -11,6 +11,8 @@ import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/daily_check/presentation/screens/daily_check_screen.dart';
 import '../../features/measurements/presentation/screens/add_measurement_screen.dart';
 import '../../features/measurements/presentation/screens/measurements_history_screen.dart';
+import '../../features/timeline/presentation/screens/what_changed_screen.dart';
+import '../../features/trends/presentation/screens/trends_screen.dart';
 import '../theme/design_system_gallery.dart';
 
 class AppRoutes {
@@ -27,6 +29,8 @@ class AppRoutes {
   static const String measurements = '/measurements';
   static const String addMeasurement = '/measurements/add';
   static const String dailyCheck = '/daily-check';
+  static const String trends = '/trends';
+  static const String whatChanged = '/what-changed';
   static const String designSystem = '/design-system';
 }
 
@@ -81,6 +85,14 @@ GoRouter createAppRouter({
       GoRoute(
         path: AppRoutes.dailyCheck,
         builder: (context, state) => const DailyCheckScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.trends,
+        builder: (context, state) => const TrendsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.whatChanged,
+        builder: (context, state) => const WhatChangedScreen(),
       ),
       GoRoute(
         path: AppRoutes.designSystem,
