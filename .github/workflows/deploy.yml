@@ -31,17 +31,10 @@ jobs:
       - name: Build Flutter Web
         run: flutter build web --release
 
-      - name: Deploy to Firebase Hosting (Service Account)
+      - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
-        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_HEALTHBASEAI != '' || secrets.FIREBASE_SERVICE_ACCOUNT != '' || secrets.FIREBASE_KEY != '' }}
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_HEALTHBASEAI || secrets.FIREBASE_SERVICE_ACCOUNT || secrets.FIREBASE_KEY }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_HEALTHBASE }}'
           channelId: live
           projectId: healthbaseai
-
-      - name: Deploy to Firebase Hosting (CLI Token Fallback)
-        if: ${{ secrets.FIREBASE_TOKEN != '' && (secrets.FIREBASE_SERVICE_ACCOUNT_HEALTHBASEAI == '' && secrets.FIREBASE_SERVICE_ACCOUNT == '' && secrets.FIREBASE_KEY == '') }}
-        run: |
-          npm install -g firebase-tools
-          firebase deploy --only hosting --token "${{ secrets.FIREBASE_TOKEN }}" --project healthbaseai
