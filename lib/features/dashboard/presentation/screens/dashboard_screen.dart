@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/routing/app_router.dart';
 import '../../../../core/safety/safety_boundaries.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -524,7 +525,7 @@ class _DashboardContent extends ConsumerWidget {
                 label: 'Record Vital',
                 variant: AppButtonVariant.secondary,
                 icon: Icons.add,
-                onPressed: () => context.push('/measurements/add'),
+                onPressed: () => context.push(AppRoutes.addMeasurement),
               ),
             ),
           ],
@@ -537,7 +538,7 @@ class _DashboardContent extends ConsumerWidget {
                 label: 'View History',
                 variant: AppButtonVariant.outline,
                 icon: Icons.history,
-                onPressed: () => context.push('/measurements'),
+                onPressed: () => context.push(AppRoutes.timeline),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -546,7 +547,7 @@ class _DashboardContent extends ConsumerWidget {
                 label: 'View Trends',
                 variant: AppButtonVariant.outline,
                 icon: Icons.insights_outlined,
-                onPressed: () => context.push('/trends'),
+                onPressed: () => context.push(AppRoutes.trends),
               ),
             ),
           ],
@@ -556,7 +557,7 @@ class _DashboardContent extends ConsumerWidget {
           label: 'What Changed?',
           variant: AppButtonVariant.outline,
           icon: Icons.compare_arrows_outlined,
-          onPressed: () => context.push('/what-changed'),
+          onPressed: () => context.push(AppRoutes.whatChanged),
         ),
       ],
     );
