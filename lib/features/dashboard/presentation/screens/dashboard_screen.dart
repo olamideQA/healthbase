@@ -548,7 +548,7 @@ class _DashboardContent extends ConsumerWidget {
                 label: 'View Trends',
                 variant: AppButtonVariant.outline,
                 icon: Icons.insights_outlined,
-                onPressed: () => context.push(AppRoutes.baseline),
+                onPressed: () => context.push(AppRoutes.trends),
               ),
             ),
           ],
