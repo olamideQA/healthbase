@@ -155,6 +155,43 @@ class LocalMedicationEventsTable extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// Local offline-first table for family health profiles.
+class LocalFamilyProfilesTable extends Table {
+  TextColumn get id => text()();
+  TextColumn get ownerAccountId => text()();
+  BoolColumn get isSelf => boolean().withDefault(const Constant(false))();
+  TextColumn get displayName => text()();
+  TextColumn get relationshipLabel => text().nullable()();
+  BoolColumn get isManaged => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get dateOfBirth => dateTime().nullable()();
+  TextColumn get sex => text().nullable()();
+  RealColumn get heightCm => real().nullable()();
+  RealColumn get weightKg => real().nullable()();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+  TextColumn get syncStatus => text().withDefault(const Constant('synced'))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Local offline-first table for shared profile access grants.
+class LocalProfileAccessTable extends Table {
+  TextColumn get id => text()();
+  TextColumn get profileId => text()();
+  TextColumn get granteeAccountId => text()();
+  TextColumn get role => text()(); // 'view', 'contribute', 'manage'
+  TextColumn get status => text()(); // 'pending', 'active', 'revoked'
+  TextColumn get grantedBy => text().nullable()();
+  TextColumn get syncStatus => text().withDefault(const Constant('synced'))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(tables: [
   SyncOutboxTable,
   LocalAppMetadataTable,
@@ -164,13 +201,15 @@ class LocalMedicationEventsTable extends Table {
   LocalDailyCheckDraftsTable,
   LocalMedicationsTable,
   LocalMedicationEventsTable,
+  LocalFamilyProfilesTable,
+  LocalProfileAccessTable,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? driftDatabase(name: 'healthbase_local_db'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -181,6 +220,10 @@ class AppDatabase extends _$AppDatabase {
           if (from < 2) {
             await m.createTable(localMedicationsTable);
             await m.createTable(localMedicationEventsTable);
+          }
+          if (from < 3) {
+            await m.createTable(localFamilyProfilesTable);
+            await m.createTable(localProfileAccessTable);
           }
         },
       );

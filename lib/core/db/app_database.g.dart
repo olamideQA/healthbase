@@ -5527,6 +5527,1405 @@ class LocalMedicationEventsTableCompanion
   }
 }
 
+class $LocalFamilyProfilesTableTable extends LocalFamilyProfilesTable
+    with
+        TableInfo<
+          $LocalFamilyProfilesTableTable,
+          LocalFamilyProfilesTableData
+        > {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalFamilyProfilesTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ownerAccountIdMeta = const VerificationMeta(
+    'ownerAccountId',
+  );
+  @override
+  late final GeneratedColumn<String> ownerAccountId = GeneratedColumn<String>(
+    'owner_account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isSelfMeta = const VerificationMeta('isSelf');
+  @override
+  late final GeneratedColumn<bool> isSelf = GeneratedColumn<bool>(
+    'is_self',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_self" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _relationshipLabelMeta = const VerificationMeta(
+    'relationshipLabel',
+  );
+  @override
+  late final GeneratedColumn<String> relationshipLabel =
+      GeneratedColumn<String>(
+        'relationship_label',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _isManagedMeta = const VerificationMeta(
+    'isManaged',
+  );
+  @override
+  late final GeneratedColumn<bool> isManaged = GeneratedColumn<bool>(
+    'is_managed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_managed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _dateOfBirthMeta = const VerificationMeta(
+    'dateOfBirth',
+  );
+  @override
+  late final GeneratedColumn<DateTime> dateOfBirth = GeneratedColumn<DateTime>(
+    'date_of_birth',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sexMeta = const VerificationMeta('sex');
+  @override
+  late final GeneratedColumn<String> sex = GeneratedColumn<String>(
+    'sex',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _heightCmMeta = const VerificationMeta(
+    'heightCm',
+  );
+  @override
+  late final GeneratedColumn<double> heightCm = GeneratedColumn<double>(
+    'height_cm',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _weightKgMeta = const VerificationMeta(
+    'weightKg',
+  );
+  @override
+  late final GeneratedColumn<double> weightKg = GeneratedColumn<double>(
+    'weight_kg',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _syncStatusMeta = const VerificationMeta(
+    'syncStatus',
+  );
+  @override
+  late final GeneratedColumn<String> syncStatus = GeneratedColumn<String>(
+    'sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('synced'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    ownerAccountId,
+    isSelf,
+    displayName,
+    relationshipLabel,
+    isManaged,
+    dateOfBirth,
+    sex,
+    heightCm,
+    weightKg,
+    isDeleted,
+    syncStatus,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_family_profiles_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalFamilyProfilesTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('owner_account_id')) {
+      context.handle(
+        _ownerAccountIdMeta,
+        ownerAccountId.isAcceptableOrUnknown(
+          data['owner_account_id']!,
+          _ownerAccountIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_ownerAccountIdMeta);
+    }
+    if (data.containsKey('is_self')) {
+      context.handle(
+        _isSelfMeta,
+        isSelf.isAcceptableOrUnknown(data['is_self']!, _isSelfMeta),
+      );
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
+    }
+    if (data.containsKey('relationship_label')) {
+      context.handle(
+        _relationshipLabelMeta,
+        relationshipLabel.isAcceptableOrUnknown(
+          data['relationship_label']!,
+          _relationshipLabelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_managed')) {
+      context.handle(
+        _isManagedMeta,
+        isManaged.isAcceptableOrUnknown(data['is_managed']!, _isManagedMeta),
+      );
+    }
+    if (data.containsKey('date_of_birth')) {
+      context.handle(
+        _dateOfBirthMeta,
+        dateOfBirth.isAcceptableOrUnknown(
+          data['date_of_birth']!,
+          _dateOfBirthMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sex')) {
+      context.handle(
+        _sexMeta,
+        sex.isAcceptableOrUnknown(data['sex']!, _sexMeta),
+      );
+    }
+    if (data.containsKey('height_cm')) {
+      context.handle(
+        _heightCmMeta,
+        heightCm.isAcceptableOrUnknown(data['height_cm']!, _heightCmMeta),
+      );
+    }
+    if (data.containsKey('weight_kg')) {
+      context.handle(
+        _weightKgMeta,
+        weightKg.isAcceptableOrUnknown(data['weight_kg']!, _weightKgMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+        _syncStatusMeta,
+        syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalFamilyProfilesTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalFamilyProfilesTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      ownerAccountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owner_account_id'],
+      )!,
+      isSelf: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_self'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      relationshipLabel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}relationship_label'],
+      ),
+      isManaged: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_managed'],
+      )!,
+      dateOfBirth: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date_of_birth'],
+      ),
+      sex: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sex'],
+      ),
+      heightCm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}height_cm'],
+      ),
+      weightKg: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}weight_kg'],
+      ),
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      syncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_status'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LocalFamilyProfilesTableTable createAlias(String alias) {
+    return $LocalFamilyProfilesTableTable(attachedDatabase, alias);
+  }
+}
+
+class LocalFamilyProfilesTableData extends DataClass
+    implements Insertable<LocalFamilyProfilesTableData> {
+  final String id;
+  final String ownerAccountId;
+  final bool isSelf;
+  final String displayName;
+  final String? relationshipLabel;
+  final bool isManaged;
+  final DateTime? dateOfBirth;
+  final String? sex;
+  final double? heightCm;
+  final double? weightKg;
+  final bool isDeleted;
+  final String syncStatus;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const LocalFamilyProfilesTableData({
+    required this.id,
+    required this.ownerAccountId,
+    required this.isSelf,
+    required this.displayName,
+    this.relationshipLabel,
+    required this.isManaged,
+    this.dateOfBirth,
+    this.sex,
+    this.heightCm,
+    this.weightKg,
+    required this.isDeleted,
+    required this.syncStatus,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['owner_account_id'] = Variable<String>(ownerAccountId);
+    map['is_self'] = Variable<bool>(isSelf);
+    map['display_name'] = Variable<String>(displayName);
+    if (!nullToAbsent || relationshipLabel != null) {
+      map['relationship_label'] = Variable<String>(relationshipLabel);
+    }
+    map['is_managed'] = Variable<bool>(isManaged);
+    if (!nullToAbsent || dateOfBirth != null) {
+      map['date_of_birth'] = Variable<DateTime>(dateOfBirth);
+    }
+    if (!nullToAbsent || sex != null) {
+      map['sex'] = Variable<String>(sex);
+    }
+    if (!nullToAbsent || heightCm != null) {
+      map['height_cm'] = Variable<double>(heightCm);
+    }
+    if (!nullToAbsent || weightKg != null) {
+      map['weight_kg'] = Variable<double>(weightKg);
+    }
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['sync_status'] = Variable<String>(syncStatus);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  LocalFamilyProfilesTableCompanion toCompanion(bool nullToAbsent) {
+    return LocalFamilyProfilesTableCompanion(
+      id: Value(id),
+      ownerAccountId: Value(ownerAccountId),
+      isSelf: Value(isSelf),
+      displayName: Value(displayName),
+      relationshipLabel: relationshipLabel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(relationshipLabel),
+      isManaged: Value(isManaged),
+      dateOfBirth: dateOfBirth == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dateOfBirth),
+      sex: sex == null && nullToAbsent ? const Value.absent() : Value(sex),
+      heightCm: heightCm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(heightCm),
+      weightKg: weightKg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(weightKg),
+      isDeleted: Value(isDeleted),
+      syncStatus: Value(syncStatus),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory LocalFamilyProfilesTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalFamilyProfilesTableData(
+      id: serializer.fromJson<String>(json['id']),
+      ownerAccountId: serializer.fromJson<String>(json['ownerAccountId']),
+      isSelf: serializer.fromJson<bool>(json['isSelf']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      relationshipLabel: serializer.fromJson<String?>(
+        json['relationshipLabel'],
+      ),
+      isManaged: serializer.fromJson<bool>(json['isManaged']),
+      dateOfBirth: serializer.fromJson<DateTime?>(json['dateOfBirth']),
+      sex: serializer.fromJson<String?>(json['sex']),
+      heightCm: serializer.fromJson<double?>(json['heightCm']),
+      weightKg: serializer.fromJson<double?>(json['weightKg']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'ownerAccountId': serializer.toJson<String>(ownerAccountId),
+      'isSelf': serializer.toJson<bool>(isSelf),
+      'displayName': serializer.toJson<String>(displayName),
+      'relationshipLabel': serializer.toJson<String?>(relationshipLabel),
+      'isManaged': serializer.toJson<bool>(isManaged),
+      'dateOfBirth': serializer.toJson<DateTime?>(dateOfBirth),
+      'sex': serializer.toJson<String?>(sex),
+      'heightCm': serializer.toJson<double?>(heightCm),
+      'weightKg': serializer.toJson<double?>(weightKg),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'syncStatus': serializer.toJson<String>(syncStatus),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  LocalFamilyProfilesTableData copyWith({
+    String? id,
+    String? ownerAccountId,
+    bool? isSelf,
+    String? displayName,
+    Value<String?> relationshipLabel = const Value.absent(),
+    bool? isManaged,
+    Value<DateTime?> dateOfBirth = const Value.absent(),
+    Value<String?> sex = const Value.absent(),
+    Value<double?> heightCm = const Value.absent(),
+    Value<double?> weightKg = const Value.absent(),
+    bool? isDeleted,
+    String? syncStatus,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => LocalFamilyProfilesTableData(
+    id: id ?? this.id,
+    ownerAccountId: ownerAccountId ?? this.ownerAccountId,
+    isSelf: isSelf ?? this.isSelf,
+    displayName: displayName ?? this.displayName,
+    relationshipLabel: relationshipLabel.present
+        ? relationshipLabel.value
+        : this.relationshipLabel,
+    isManaged: isManaged ?? this.isManaged,
+    dateOfBirth: dateOfBirth.present ? dateOfBirth.value : this.dateOfBirth,
+    sex: sex.present ? sex.value : this.sex,
+    heightCm: heightCm.present ? heightCm.value : this.heightCm,
+    weightKg: weightKg.present ? weightKg.value : this.weightKg,
+    isDeleted: isDeleted ?? this.isDeleted,
+    syncStatus: syncStatus ?? this.syncStatus,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  LocalFamilyProfilesTableData copyWithCompanion(
+    LocalFamilyProfilesTableCompanion data,
+  ) {
+    return LocalFamilyProfilesTableData(
+      id: data.id.present ? data.id.value : this.id,
+      ownerAccountId: data.ownerAccountId.present
+          ? data.ownerAccountId.value
+          : this.ownerAccountId,
+      isSelf: data.isSelf.present ? data.isSelf.value : this.isSelf,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      relationshipLabel: data.relationshipLabel.present
+          ? data.relationshipLabel.value
+          : this.relationshipLabel,
+      isManaged: data.isManaged.present ? data.isManaged.value : this.isManaged,
+      dateOfBirth: data.dateOfBirth.present
+          ? data.dateOfBirth.value
+          : this.dateOfBirth,
+      sex: data.sex.present ? data.sex.value : this.sex,
+      heightCm: data.heightCm.present ? data.heightCm.value : this.heightCm,
+      weightKg: data.weightKg.present ? data.weightKg.value : this.weightKg,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalFamilyProfilesTableData(')
+          ..write('id: $id, ')
+          ..write('ownerAccountId: $ownerAccountId, ')
+          ..write('isSelf: $isSelf, ')
+          ..write('displayName: $displayName, ')
+          ..write('relationshipLabel: $relationshipLabel, ')
+          ..write('isManaged: $isManaged, ')
+          ..write('dateOfBirth: $dateOfBirth, ')
+          ..write('sex: $sex, ')
+          ..write('heightCm: $heightCm, ')
+          ..write('weightKg: $weightKg, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    ownerAccountId,
+    isSelf,
+    displayName,
+    relationshipLabel,
+    isManaged,
+    dateOfBirth,
+    sex,
+    heightCm,
+    weightKg,
+    isDeleted,
+    syncStatus,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalFamilyProfilesTableData &&
+          other.id == this.id &&
+          other.ownerAccountId == this.ownerAccountId &&
+          other.isSelf == this.isSelf &&
+          other.displayName == this.displayName &&
+          other.relationshipLabel == this.relationshipLabel &&
+          other.isManaged == this.isManaged &&
+          other.dateOfBirth == this.dateOfBirth &&
+          other.sex == this.sex &&
+          other.heightCm == this.heightCm &&
+          other.weightKg == this.weightKg &&
+          other.isDeleted == this.isDeleted &&
+          other.syncStatus == this.syncStatus &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class LocalFamilyProfilesTableCompanion
+    extends UpdateCompanion<LocalFamilyProfilesTableData> {
+  final Value<String> id;
+  final Value<String> ownerAccountId;
+  final Value<bool> isSelf;
+  final Value<String> displayName;
+  final Value<String?> relationshipLabel;
+  final Value<bool> isManaged;
+  final Value<DateTime?> dateOfBirth;
+  final Value<String?> sex;
+  final Value<double?> heightCm;
+  final Value<double?> weightKg;
+  final Value<bool> isDeleted;
+  final Value<String> syncStatus;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const LocalFamilyProfilesTableCompanion({
+    this.id = const Value.absent(),
+    this.ownerAccountId = const Value.absent(),
+    this.isSelf = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.relationshipLabel = const Value.absent(),
+    this.isManaged = const Value.absent(),
+    this.dateOfBirth = const Value.absent(),
+    this.sex = const Value.absent(),
+    this.heightCm = const Value.absent(),
+    this.weightKg = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalFamilyProfilesTableCompanion.insert({
+    required String id,
+    required String ownerAccountId,
+    this.isSelf = const Value.absent(),
+    required String displayName,
+    this.relationshipLabel = const Value.absent(),
+    this.isManaged = const Value.absent(),
+    this.dateOfBirth = const Value.absent(),
+    this.sex = const Value.absent(),
+    this.heightCm = const Value.absent(),
+    this.weightKg = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       ownerAccountId = Value(ownerAccountId),
+       displayName = Value(displayName);
+  static Insertable<LocalFamilyProfilesTableData> custom({
+    Expression<String>? id,
+    Expression<String>? ownerAccountId,
+    Expression<bool>? isSelf,
+    Expression<String>? displayName,
+    Expression<String>? relationshipLabel,
+    Expression<bool>? isManaged,
+    Expression<DateTime>? dateOfBirth,
+    Expression<String>? sex,
+    Expression<double>? heightCm,
+    Expression<double>? weightKg,
+    Expression<bool>? isDeleted,
+    Expression<String>? syncStatus,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (ownerAccountId != null) 'owner_account_id': ownerAccountId,
+      if (isSelf != null) 'is_self': isSelf,
+      if (displayName != null) 'display_name': displayName,
+      if (relationshipLabel != null) 'relationship_label': relationshipLabel,
+      if (isManaged != null) 'is_managed': isManaged,
+      if (dateOfBirth != null) 'date_of_birth': dateOfBirth,
+      if (sex != null) 'sex': sex,
+      if (heightCm != null) 'height_cm': heightCm,
+      if (weightKg != null) 'weight_kg': weightKg,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalFamilyProfilesTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? ownerAccountId,
+    Value<bool>? isSelf,
+    Value<String>? displayName,
+    Value<String?>? relationshipLabel,
+    Value<bool>? isManaged,
+    Value<DateTime?>? dateOfBirth,
+    Value<String?>? sex,
+    Value<double?>? heightCm,
+    Value<double?>? weightKg,
+    Value<bool>? isDeleted,
+    Value<String>? syncStatus,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return LocalFamilyProfilesTableCompanion(
+      id: id ?? this.id,
+      ownerAccountId: ownerAccountId ?? this.ownerAccountId,
+      isSelf: isSelf ?? this.isSelf,
+      displayName: displayName ?? this.displayName,
+      relationshipLabel: relationshipLabel ?? this.relationshipLabel,
+      isManaged: isManaged ?? this.isManaged,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+      sex: sex ?? this.sex,
+      heightCm: heightCm ?? this.heightCm,
+      weightKg: weightKg ?? this.weightKg,
+      isDeleted: isDeleted ?? this.isDeleted,
+      syncStatus: syncStatus ?? this.syncStatus,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (ownerAccountId.present) {
+      map['owner_account_id'] = Variable<String>(ownerAccountId.value);
+    }
+    if (isSelf.present) {
+      map['is_self'] = Variable<bool>(isSelf.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (relationshipLabel.present) {
+      map['relationship_label'] = Variable<String>(relationshipLabel.value);
+    }
+    if (isManaged.present) {
+      map['is_managed'] = Variable<bool>(isManaged.value);
+    }
+    if (dateOfBirth.present) {
+      map['date_of_birth'] = Variable<DateTime>(dateOfBirth.value);
+    }
+    if (sex.present) {
+      map['sex'] = Variable<String>(sex.value);
+    }
+    if (heightCm.present) {
+      map['height_cm'] = Variable<double>(heightCm.value);
+    }
+    if (weightKg.present) {
+      map['weight_kg'] = Variable<double>(weightKg.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<String>(syncStatus.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalFamilyProfilesTableCompanion(')
+          ..write('id: $id, ')
+          ..write('ownerAccountId: $ownerAccountId, ')
+          ..write('isSelf: $isSelf, ')
+          ..write('displayName: $displayName, ')
+          ..write('relationshipLabel: $relationshipLabel, ')
+          ..write('isManaged: $isManaged, ')
+          ..write('dateOfBirth: $dateOfBirth, ')
+          ..write('sex: $sex, ')
+          ..write('heightCm: $heightCm, ')
+          ..write('weightKg: $weightKg, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalProfileAccessTableTable extends LocalProfileAccessTable
+    with TableInfo<$LocalProfileAccessTableTable, LocalProfileAccessTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalProfileAccessTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<String> profileId = GeneratedColumn<String>(
+    'profile_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _granteeAccountIdMeta = const VerificationMeta(
+    'granteeAccountId',
+  );
+  @override
+  late final GeneratedColumn<String> granteeAccountId = GeneratedColumn<String>(
+    'grantee_account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
+  @override
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+    'role',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _grantedByMeta = const VerificationMeta(
+    'grantedBy',
+  );
+  @override
+  late final GeneratedColumn<String> grantedBy = GeneratedColumn<String>(
+    'granted_by',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncStatusMeta = const VerificationMeta(
+    'syncStatus',
+  );
+  @override
+  late final GeneratedColumn<String> syncStatus = GeneratedColumn<String>(
+    'sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('synced'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    profileId,
+    granteeAccountId,
+    role,
+    status,
+    grantedBy,
+    syncStatus,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_profile_access_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalProfileAccessTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('grantee_account_id')) {
+      context.handle(
+        _granteeAccountIdMeta,
+        granteeAccountId.isAcceptableOrUnknown(
+          data['grantee_account_id']!,
+          _granteeAccountIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_granteeAccountIdMeta);
+    }
+    if (data.containsKey('role')) {
+      context.handle(
+        _roleMeta,
+        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_roleMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('granted_by')) {
+      context.handle(
+        _grantedByMeta,
+        grantedBy.isAcceptableOrUnknown(data['granted_by']!, _grantedByMeta),
+      );
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+        _syncStatusMeta,
+        syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalProfileAccessTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalProfileAccessTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}profile_id'],
+      )!,
+      granteeAccountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}grantee_account_id'],
+      )!,
+      role: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      grantedBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}granted_by'],
+      ),
+      syncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_status'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LocalProfileAccessTableTable createAlias(String alias) {
+    return $LocalProfileAccessTableTable(attachedDatabase, alias);
+  }
+}
+
+class LocalProfileAccessTableData extends DataClass
+    implements Insertable<LocalProfileAccessTableData> {
+  final String id;
+  final String profileId;
+  final String granteeAccountId;
+  final String role;
+  final String status;
+  final String? grantedBy;
+  final String syncStatus;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const LocalProfileAccessTableData({
+    required this.id,
+    required this.profileId,
+    required this.granteeAccountId,
+    required this.role,
+    required this.status,
+    this.grantedBy,
+    required this.syncStatus,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['profile_id'] = Variable<String>(profileId);
+    map['grantee_account_id'] = Variable<String>(granteeAccountId);
+    map['role'] = Variable<String>(role);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || grantedBy != null) {
+      map['granted_by'] = Variable<String>(grantedBy);
+    }
+    map['sync_status'] = Variable<String>(syncStatus);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  LocalProfileAccessTableCompanion toCompanion(bool nullToAbsent) {
+    return LocalProfileAccessTableCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      granteeAccountId: Value(granteeAccountId),
+      role: Value(role),
+      status: Value(status),
+      grantedBy: grantedBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(grantedBy),
+      syncStatus: Value(syncStatus),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory LocalProfileAccessTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalProfileAccessTableData(
+      id: serializer.fromJson<String>(json['id']),
+      profileId: serializer.fromJson<String>(json['profileId']),
+      granteeAccountId: serializer.fromJson<String>(json['granteeAccountId']),
+      role: serializer.fromJson<String>(json['role']),
+      status: serializer.fromJson<String>(json['status']),
+      grantedBy: serializer.fromJson<String?>(json['grantedBy']),
+      syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'profileId': serializer.toJson<String>(profileId),
+      'granteeAccountId': serializer.toJson<String>(granteeAccountId),
+      'role': serializer.toJson<String>(role),
+      'status': serializer.toJson<String>(status),
+      'grantedBy': serializer.toJson<String?>(grantedBy),
+      'syncStatus': serializer.toJson<String>(syncStatus),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  LocalProfileAccessTableData copyWith({
+    String? id,
+    String? profileId,
+    String? granteeAccountId,
+    String? role,
+    String? status,
+    Value<String?> grantedBy = const Value.absent(),
+    String? syncStatus,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => LocalProfileAccessTableData(
+    id: id ?? this.id,
+    profileId: profileId ?? this.profileId,
+    granteeAccountId: granteeAccountId ?? this.granteeAccountId,
+    role: role ?? this.role,
+    status: status ?? this.status,
+    grantedBy: grantedBy.present ? grantedBy.value : this.grantedBy,
+    syncStatus: syncStatus ?? this.syncStatus,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  LocalProfileAccessTableData copyWithCompanion(
+    LocalProfileAccessTableCompanion data,
+  ) {
+    return LocalProfileAccessTableData(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      granteeAccountId: data.granteeAccountId.present
+          ? data.granteeAccountId.value
+          : this.granteeAccountId,
+      role: data.role.present ? data.role.value : this.role,
+      status: data.status.present ? data.status.value : this.status,
+      grantedBy: data.grantedBy.present ? data.grantedBy.value : this.grantedBy,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalProfileAccessTableData(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('granteeAccountId: $granteeAccountId, ')
+          ..write('role: $role, ')
+          ..write('status: $status, ')
+          ..write('grantedBy: $grantedBy, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    profileId,
+    granteeAccountId,
+    role,
+    status,
+    grantedBy,
+    syncStatus,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalProfileAccessTableData &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.granteeAccountId == this.granteeAccountId &&
+          other.role == this.role &&
+          other.status == this.status &&
+          other.grantedBy == this.grantedBy &&
+          other.syncStatus == this.syncStatus &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class LocalProfileAccessTableCompanion
+    extends UpdateCompanion<LocalProfileAccessTableData> {
+  final Value<String> id;
+  final Value<String> profileId;
+  final Value<String> granteeAccountId;
+  final Value<String> role;
+  final Value<String> status;
+  final Value<String?> grantedBy;
+  final Value<String> syncStatus;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const LocalProfileAccessTableCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.granteeAccountId = const Value.absent(),
+    this.role = const Value.absent(),
+    this.status = const Value.absent(),
+    this.grantedBy = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalProfileAccessTableCompanion.insert({
+    required String id,
+    required String profileId,
+    required String granteeAccountId,
+    required String role,
+    required String status,
+    this.grantedBy = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       profileId = Value(profileId),
+       granteeAccountId = Value(granteeAccountId),
+       role = Value(role),
+       status = Value(status);
+  static Insertable<LocalProfileAccessTableData> custom({
+    Expression<String>? id,
+    Expression<String>? profileId,
+    Expression<String>? granteeAccountId,
+    Expression<String>? role,
+    Expression<String>? status,
+    Expression<String>? grantedBy,
+    Expression<String>? syncStatus,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (granteeAccountId != null) 'grantee_account_id': granteeAccountId,
+      if (role != null) 'role': role,
+      if (status != null) 'status': status,
+      if (grantedBy != null) 'granted_by': grantedBy,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalProfileAccessTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? profileId,
+    Value<String>? granteeAccountId,
+    Value<String>? role,
+    Value<String>? status,
+    Value<String?>? grantedBy,
+    Value<String>? syncStatus,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return LocalProfileAccessTableCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      granteeAccountId: granteeAccountId ?? this.granteeAccountId,
+      role: role ?? this.role,
+      status: status ?? this.status,
+      grantedBy: grantedBy ?? this.grantedBy,
+      syncStatus: syncStatus ?? this.syncStatus,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<String>(profileId.value);
+    }
+    if (granteeAccountId.present) {
+      map['grantee_account_id'] = Variable<String>(granteeAccountId.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (grantedBy.present) {
+      map['granted_by'] = Variable<String>(grantedBy.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<String>(syncStatus.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalProfileAccessTableCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('granteeAccountId: $granteeAccountId, ')
+          ..write('role: $role, ')
+          ..write('status: $status, ')
+          ..write('grantedBy: $grantedBy, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5547,6 +6946,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $LocalMedicationsTableTable(this);
   late final $LocalMedicationEventsTableTable localMedicationEventsTable =
       $LocalMedicationEventsTableTable(this);
+  late final $LocalFamilyProfilesTableTable localFamilyProfilesTable =
+      $LocalFamilyProfilesTableTable(this);
+  late final $LocalProfileAccessTableTable localProfileAccessTable =
+      $LocalProfileAccessTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5560,6 +6963,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     localDailyCheckDraftsTable,
     localMedicationsTable,
     localMedicationEventsTable,
+    localFamilyProfilesTable,
+    localProfileAccessTable,
   ];
 }
 
@@ -8322,6 +9727,705 @@ typedef $$LocalMedicationEventsTableTableProcessedTableManager =
       LocalMedicationEventsTableData,
       PrefetchHooks Function()
     >;
+typedef $$LocalFamilyProfilesTableTableCreateCompanionBuilder =
+    LocalFamilyProfilesTableCompanion Function({
+      required String id,
+      required String ownerAccountId,
+      Value<bool> isSelf,
+      required String displayName,
+      Value<String?> relationshipLabel,
+      Value<bool> isManaged,
+      Value<DateTime?> dateOfBirth,
+      Value<String?> sex,
+      Value<double?> heightCm,
+      Value<double?> weightKg,
+      Value<bool> isDeleted,
+      Value<String> syncStatus,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$LocalFamilyProfilesTableTableUpdateCompanionBuilder =
+    LocalFamilyProfilesTableCompanion Function({
+      Value<String> id,
+      Value<String> ownerAccountId,
+      Value<bool> isSelf,
+      Value<String> displayName,
+      Value<String?> relationshipLabel,
+      Value<bool> isManaged,
+      Value<DateTime?> dateOfBirth,
+      Value<String?> sex,
+      Value<double?> heightCm,
+      Value<double?> weightKg,
+      Value<bool> isDeleted,
+      Value<String> syncStatus,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$LocalFamilyProfilesTableTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalFamilyProfilesTableTable> {
+  $$LocalFamilyProfilesTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ownerAccountId => $composableBuilder(
+    column: $table.ownerAccountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSelf => $composableBuilder(
+    column: $table.isSelf,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get relationshipLabel => $composableBuilder(
+    column: $table.relationshipLabel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isManaged => $composableBuilder(
+    column: $table.isManaged,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get dateOfBirth => $composableBuilder(
+    column: $table.dateOfBirth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sex => $composableBuilder(
+    column: $table.sex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get heightCm => $composableBuilder(
+    column: $table.heightCm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get weightKg => $composableBuilder(
+    column: $table.weightKg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LocalFamilyProfilesTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalFamilyProfilesTableTable> {
+  $$LocalFamilyProfilesTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ownerAccountId => $composableBuilder(
+    column: $table.ownerAccountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSelf => $composableBuilder(
+    column: $table.isSelf,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get relationshipLabel => $composableBuilder(
+    column: $table.relationshipLabel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isManaged => $composableBuilder(
+    column: $table.isManaged,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get dateOfBirth => $composableBuilder(
+    column: $table.dateOfBirth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sex => $composableBuilder(
+    column: $table.sex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get heightCm => $composableBuilder(
+    column: $table.heightCm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get weightKg => $composableBuilder(
+    column: $table.weightKg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalFamilyProfilesTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalFamilyProfilesTableTable> {
+  $$LocalFamilyProfilesTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get ownerAccountId => $composableBuilder(
+    column: $table.ownerAccountId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isSelf =>
+      $composableBuilder(column: $table.isSelf, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get relationshipLabel => $composableBuilder(
+    column: $table.relationshipLabel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isManaged =>
+      $composableBuilder(column: $table.isManaged, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get dateOfBirth => $composableBuilder(
+    column: $table.dateOfBirth,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sex =>
+      $composableBuilder(column: $table.sex, builder: (column) => column);
+
+  GeneratedColumn<double> get heightCm =>
+      $composableBuilder(column: $table.heightCm, builder: (column) => column);
+
+  GeneratedColumn<double> get weightKg =>
+      $composableBuilder(column: $table.weightKg, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$LocalFamilyProfilesTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LocalFamilyProfilesTableTable,
+          LocalFamilyProfilesTableData,
+          $$LocalFamilyProfilesTableTableFilterComposer,
+          $$LocalFamilyProfilesTableTableOrderingComposer,
+          $$LocalFamilyProfilesTableTableAnnotationComposer,
+          $$LocalFamilyProfilesTableTableCreateCompanionBuilder,
+          $$LocalFamilyProfilesTableTableUpdateCompanionBuilder,
+          (
+            LocalFamilyProfilesTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $LocalFamilyProfilesTableTable,
+              LocalFamilyProfilesTableData
+            >,
+          ),
+          LocalFamilyProfilesTableData,
+          PrefetchHooks Function()
+        > {
+  $$LocalFamilyProfilesTableTableTableManager(
+    _$AppDatabase db,
+    $LocalFamilyProfilesTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalFamilyProfilesTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$LocalFamilyProfilesTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$LocalFamilyProfilesTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> ownerAccountId = const Value.absent(),
+                Value<bool> isSelf = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<String?> relationshipLabel = const Value.absent(),
+                Value<bool> isManaged = const Value.absent(),
+                Value<DateTime?> dateOfBirth = const Value.absent(),
+                Value<String?> sex = const Value.absent(),
+                Value<double?> heightCm = const Value.absent(),
+                Value<double?> weightKg = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalFamilyProfilesTableCompanion(
+                id: id,
+                ownerAccountId: ownerAccountId,
+                isSelf: isSelf,
+                displayName: displayName,
+                relationshipLabel: relationshipLabel,
+                isManaged: isManaged,
+                dateOfBirth: dateOfBirth,
+                sex: sex,
+                heightCm: heightCm,
+                weightKg: weightKg,
+                isDeleted: isDeleted,
+                syncStatus: syncStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String ownerAccountId,
+                Value<bool> isSelf = const Value.absent(),
+                required String displayName,
+                Value<String?> relationshipLabel = const Value.absent(),
+                Value<bool> isManaged = const Value.absent(),
+                Value<DateTime?> dateOfBirth = const Value.absent(),
+                Value<String?> sex = const Value.absent(),
+                Value<double?> heightCm = const Value.absent(),
+                Value<double?> weightKg = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalFamilyProfilesTableCompanion.insert(
+                id: id,
+                ownerAccountId: ownerAccountId,
+                isSelf: isSelf,
+                displayName: displayName,
+                relationshipLabel: relationshipLabel,
+                isManaged: isManaged,
+                dateOfBirth: dateOfBirth,
+                sex: sex,
+                heightCm: heightCm,
+                weightKg: weightKg,
+                isDeleted: isDeleted,
+                syncStatus: syncStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LocalFamilyProfilesTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LocalFamilyProfilesTableTable,
+      LocalFamilyProfilesTableData,
+      $$LocalFamilyProfilesTableTableFilterComposer,
+      $$LocalFamilyProfilesTableTableOrderingComposer,
+      $$LocalFamilyProfilesTableTableAnnotationComposer,
+      $$LocalFamilyProfilesTableTableCreateCompanionBuilder,
+      $$LocalFamilyProfilesTableTableUpdateCompanionBuilder,
+      (
+        LocalFamilyProfilesTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $LocalFamilyProfilesTableTable,
+          LocalFamilyProfilesTableData
+        >,
+      ),
+      LocalFamilyProfilesTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$LocalProfileAccessTableTableCreateCompanionBuilder =
+    LocalProfileAccessTableCompanion Function({
+      required String id,
+      required String profileId,
+      required String granteeAccountId,
+      required String role,
+      required String status,
+      Value<String?> grantedBy,
+      Value<String> syncStatus,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$LocalProfileAccessTableTableUpdateCompanionBuilder =
+    LocalProfileAccessTableCompanion Function({
+      Value<String> id,
+      Value<String> profileId,
+      Value<String> granteeAccountId,
+      Value<String> role,
+      Value<String> status,
+      Value<String?> grantedBy,
+      Value<String> syncStatus,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$LocalProfileAccessTableTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalProfileAccessTableTable> {
+  $$LocalProfileAccessTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get profileId => $composableBuilder(
+    column: $table.profileId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get granteeAccountId => $composableBuilder(
+    column: $table.granteeAccountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get grantedBy => $composableBuilder(
+    column: $table.grantedBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LocalProfileAccessTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalProfileAccessTableTable> {
+  $$LocalProfileAccessTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get profileId => $composableBuilder(
+    column: $table.profileId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get granteeAccountId => $composableBuilder(
+    column: $table.granteeAccountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get grantedBy => $composableBuilder(
+    column: $table.grantedBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalProfileAccessTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalProfileAccessTableTable> {
+  $$LocalProfileAccessTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get profileId =>
+      $composableBuilder(column: $table.profileId, builder: (column) => column);
+
+  GeneratedColumn<String> get granteeAccountId => $composableBuilder(
+    column: $table.granteeAccountId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get grantedBy =>
+      $composableBuilder(column: $table.grantedBy, builder: (column) => column);
+
+  GeneratedColumn<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$LocalProfileAccessTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LocalProfileAccessTableTable,
+          LocalProfileAccessTableData,
+          $$LocalProfileAccessTableTableFilterComposer,
+          $$LocalProfileAccessTableTableOrderingComposer,
+          $$LocalProfileAccessTableTableAnnotationComposer,
+          $$LocalProfileAccessTableTableCreateCompanionBuilder,
+          $$LocalProfileAccessTableTableUpdateCompanionBuilder,
+          (
+            LocalProfileAccessTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $LocalProfileAccessTableTable,
+              LocalProfileAccessTableData
+            >,
+          ),
+          LocalProfileAccessTableData,
+          PrefetchHooks Function()
+        > {
+  $$LocalProfileAccessTableTableTableManager(
+    _$AppDatabase db,
+    $LocalProfileAccessTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalProfileAccessTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$LocalProfileAccessTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$LocalProfileAccessTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> profileId = const Value.absent(),
+                Value<String> granteeAccountId = const Value.absent(),
+                Value<String> role = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String?> grantedBy = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalProfileAccessTableCompanion(
+                id: id,
+                profileId: profileId,
+                granteeAccountId: granteeAccountId,
+                role: role,
+                status: status,
+                grantedBy: grantedBy,
+                syncStatus: syncStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String profileId,
+                required String granteeAccountId,
+                required String role,
+                required String status,
+                Value<String?> grantedBy = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalProfileAccessTableCompanion.insert(
+                id: id,
+                profileId: profileId,
+                granteeAccountId: granteeAccountId,
+                role: role,
+                status: status,
+                grantedBy: grantedBy,
+                syncStatus: syncStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LocalProfileAccessTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LocalProfileAccessTableTable,
+      LocalProfileAccessTableData,
+      $$LocalProfileAccessTableTableFilterComposer,
+      $$LocalProfileAccessTableTableOrderingComposer,
+      $$LocalProfileAccessTableTableAnnotationComposer,
+      $$LocalProfileAccessTableTableCreateCompanionBuilder,
+      $$LocalProfileAccessTableTableUpdateCompanionBuilder,
+      (
+        LocalProfileAccessTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $LocalProfileAccessTableTable,
+          LocalProfileAccessTableData
+        >,
+      ),
+      LocalProfileAccessTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8356,5 +10460,15 @@ class $AppDatabaseManager {
       $$LocalMedicationEventsTableTableTableManager(
         _db,
         _db.localMedicationEventsTable,
+      );
+  $$LocalFamilyProfilesTableTableTableManager get localFamilyProfilesTable =>
+      $$LocalFamilyProfilesTableTableTableManager(
+        _db,
+        _db.localFamilyProfilesTable,
+      );
+  $$LocalProfileAccessTableTableTableManager get localProfileAccessTable =>
+      $$LocalProfileAccessTableTableTableManager(
+        _db,
+        _db.localProfileAccessTable,
       );
 }

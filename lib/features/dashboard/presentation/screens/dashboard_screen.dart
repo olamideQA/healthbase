@@ -32,6 +32,11 @@ class DashboardScreen extends ConsumerWidget {
         title: const Text('HealthBase'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.people_outline),
+            tooltip: 'Family Health',
+            onPressed: () => context.push(AppRoutes.family),
+          ),
+          IconButton(
             icon: const Icon(Icons.person_outline),
             tooltip: 'Health Profile',
             onPressed: () => context.push('/profile'),
@@ -571,6 +576,19 @@ class _DashboardContent extends ConsumerWidget {
                 variant: AppButtonVariant.outline,
                 icon: Icons.medication_outlined,
                 onPressed: () => context.push(AppRoutes.medications),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(
+              child: AppButton(
+                label: 'Family Health',
+                variant: AppButtonVariant.outline,
+                icon: Icons.people_outline,
+                onPressed: () => context.push(AppRoutes.family),
               ),
             ),
           ],
