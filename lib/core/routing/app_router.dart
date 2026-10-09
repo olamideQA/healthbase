@@ -13,7 +13,7 @@ import '../../features/daily_check/presentation/screens/daily_check_screen.dart'
 import '../../features/measurements/presentation/screens/add_measurement_screen.dart';
 import '../../features/measurements/presentation/screens/measurements_history_screen.dart';
 import '../../features/timeline/presentation/screens/timeline_screen.dart';
-import '../../features/timeline/presentation/screens/what_changed_screen.dart';
+import '../../features/insights/presentation/screens/what_changed_screen.dart';
 import '../../features/trends/presentation/screens/trends_screen.dart';
 import '../theme/design_system_gallery.dart';
 
