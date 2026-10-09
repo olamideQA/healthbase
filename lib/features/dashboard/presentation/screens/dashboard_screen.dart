@@ -475,6 +475,7 @@ class _DashboardContent extends ConsumerWidget {
   Widget _buildTrendsSection(BuildContext context, DashboardSummary summary) {
     return AppCard(
       title: 'Current Baseline Directions',
+      onTap: () => context.push(AppRoutes.baseline),
       child: Column(
         children: [
           _buildTrendRow('Heart rate', summary.heartRate),
@@ -547,7 +548,7 @@ class _DashboardContent extends ConsumerWidget {
                 label: 'View Trends',
                 variant: AppButtonVariant.outline,
                 icon: Icons.insights_outlined,
-                onPressed: () => context.push(AppRoutes.trends),
+                onPressed: () => context.push(AppRoutes.baseline),
               ),
             ),
           ],

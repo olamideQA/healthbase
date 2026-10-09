@@ -8,6 +8,7 @@ import '../../features/auth/presentation/screens/reset_password_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/baseline/presentation/screens/personal_baseline_screen.dart';
 import '../../features/daily_check/presentation/screens/daily_check_screen.dart';
 import '../../features/measurements/presentation/screens/add_measurement_screen.dart';
 import '../../features/measurements/presentation/screens/measurements_history_screen.dart';
@@ -27,6 +28,7 @@ class AppRoutes {
   static const String dashboard = '/dashboard';
   static const String onboarding = '/onboarding';
   static const String profile = '/profile';
+  static const String baseline = '/baseline';
   static const String timeline = '/timeline';
   static const String measurements = '/measurements';
   static const String addMeasurement = '/measurements/add';
@@ -75,6 +77,10 @@ GoRouter createAppRouter({
       GoRoute(
         path: AppRoutes.profile,
         builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.baseline,
+        builder: (context, state) => const PersonalBaselineScreen(),
       ),
       GoRoute(
         path: AppRoutes.timeline,
