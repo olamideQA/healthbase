@@ -554,11 +554,26 @@ class _DashboardContent extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.md),
-        AppButton(
-          label: 'What Changed?',
-          variant: AppButtonVariant.outline,
-          icon: Icons.compare_arrows_outlined,
-          onPressed: () => context.push(AppRoutes.whatChanged),
+        Row(
+          children: [
+            Expanded(
+              child: AppButton(
+                label: 'What Changed?',
+                variant: AppButtonVariant.outline,
+                icon: Icons.compare_arrows_outlined,
+                onPressed: () => context.push(AppRoutes.whatChanged),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: AppButton(
+                label: 'Medications',
+                variant: AppButtonVariant.outline,
+                icon: Icons.medication_outlined,
+                onPressed: () => context.push(AppRoutes.medications),
+              ),
+            ),
+          ],
         ),
       ],
     );

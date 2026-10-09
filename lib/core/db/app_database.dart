@@ -114,6 +114,47 @@ class LocalDailyCheckDraftsTable extends Table {
   Set<Column<Object>> get primaryKey => {profileId};
 }
 
+/// Local offline-first table for user medications.
+class LocalMedicationsTable extends Table {
+  TextColumn get id => text()();
+  TextColumn get profileId => text()();
+  TextColumn get name => text()();
+  TextColumn get dosage => text()(); // User-entered free text, never calculated
+  TextColumn get frequency => text()(); // 'daily', 'twice_daily', 'three_times_daily', 'as_needed', 'weekly'
+  DateTimeColumn get startDate => dateTime()();
+  DateTimeColumn get endDate => dateTime().nullable()();
+  TextColumn get reminderTime => text().nullable()(); // e.g. "08:00"
+  TextColumn get notes => text().nullable()();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+  TextColumn get syncStatus => text().withDefault(const Constant('synced'))();
+  IntColumn get version => integer().withDefault(const Constant(1))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Local offline-first table for medication adherence events.
+class LocalMedicationEventsTable extends Table {
+  TextColumn get id => text()();
+  TextColumn get profileId => text()();
+  TextColumn get medicationId => text()();
+  DateTimeColumn get scheduledTime => dateTime()();
+  DateTimeColumn get recordedAt => dateTime().nullable()();
+  TextColumn get status => text()(); // 'taken', 'missed', 'not_recorded'
+  TextColumn get notes => text().nullable()();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+  TextColumn get syncStatus => text().withDefault(const Constant('synced'))();
+  IntColumn get version => integer().withDefault(const Constant(1))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(tables: [
   SyncOutboxTable,
   LocalAppMetadataTable,
@@ -121,11 +162,26 @@ class LocalDailyCheckDraftsTable extends Table {
   LocalDailyChecksTable,
   LocalDailyCheckSymptomsTable,
   LocalDailyCheckDraftsTable,
+  LocalMedicationsTable,
+  LocalMedicationEventsTable,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? driftDatabase(name: 'healthbase_local_db'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) async {
+          await m.createAll();
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createTable(localMedicationsTable);
+            await m.createTable(localMedicationEventsTable);
+          }
+        },
+      );
 }

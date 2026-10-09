@@ -15,6 +15,8 @@ import '../../features/measurements/presentation/screens/measurements_history_sc
 import '../../features/timeline/presentation/screens/timeline_screen.dart';
 import '../../features/insights/presentation/screens/what_changed_screen.dart';
 import '../../features/trends/presentation/screens/trends_screen.dart';
+import '../../features/medications/presentation/screens/medications_screen.dart';
+import '../../features/medications/presentation/screens/add_medication_screen.dart';
 import '../theme/design_system_gallery.dart';
 
 class AppRoutes {
@@ -35,6 +37,8 @@ class AppRoutes {
   static const String dailyCheck = '/daily-check';
   static const String trends = '/trends';
   static const String whatChanged = '/what-changed';
+  static const String medications = '/medications';
+  static const String addMedication = '/medications/add';
   static const String designSystem = '/design-system';
 }
 
@@ -105,6 +109,14 @@ GoRouter createAppRouter({
       GoRoute(
         path: AppRoutes.whatChanged,
         builder: (context, state) => const WhatChangedScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.medications,
+        builder: (context, state) => const MedicationsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.addMedication,
+        builder: (context, state) => const AddMedicationScreen(),
       ),
       GoRoute(
         path: AppRoutes.designSystem,
