@@ -68,6 +68,8 @@ class AppLogger {
     r'(password|passphrase|secret)\s*[:=]\s*("[^"]*"|' r"'[^']*'|\S+)",
     caseSensitive: false,
   );
+  static final RegExp _phonePattern = RegExp(r'\+\d{7,15}');
+  static final RegExp _inviteCodePattern = RegExp(r'\b[A-Z0-9]{32}\b');
 
   /// Redacts sensitive information from a string.
   static String redact(String message) {
@@ -75,6 +77,8 @@ class AppLogger {
     sanitized = sanitized.replaceAll(_jwtPattern, '[REDACTED_JWT]');
     sanitized = sanitized.replaceAll(_apiKeyPattern, '[REDACTED_API_KEY]');
     sanitized = sanitized.replaceAll(_emailPattern, '[REDACTED_EMAIL]');
+    sanitized = sanitized.replaceAll(_phonePattern, '[REDACTED_PHONE]');
+    sanitized = sanitized.replaceAll(_inviteCodePattern, '[REDACTED_INVITE]');
     sanitized = sanitized.replaceAllMapped(
       _passwordPattern,
       (match) => '${match.group(1)}=[REDACTED_SECRET]',
@@ -90,15 +94,15 @@ class AppLogger {
 
   static void warning(String message, [Object? error]) {
     if (kDebugMode) {
-      debugPrint('[WARN] ${redact(message)}${error != null ? ' | Cause: $error' : ''}');
+      debugPrint('[WARN] ${redact(message)}${error != null ? ' | Cause: ${redact(error.toString())}' : ''}');
     }
   }
 
   static void error(String message, [Object? error, StackTrace? stackTrace]) {
     if (kDebugMode) {
-      debugPrint('[ERROR] ${redact(message)}${error != null ? ' | Cause: $error' : ''}');
+      debugPrint('[ERROR] ${redact(message)}${error != null ? ' | Cause: ${redact(error.toString())}' : ''}');
       if (stackTrace != null) {
-        debugPrint(stackTrace.toString());
+        debugPrint(redact(stackTrace.toString()));
       }
     }
   }

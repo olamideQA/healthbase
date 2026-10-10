@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +6,7 @@ import 'core/config/app_config.dart';
 import 'core/db/app_database.dart';
 import 'core/db/encrypted_database.dart';
 import 'core/routing/app_router.dart';
+import 'core/security/secure_session_storage.dart';
 import 'core/security/security_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/data/auth_repository.dart';
@@ -27,13 +27,18 @@ Future<void> main() async {
   final security = SecurityService();
   final db = await openEncryptedAppDatabase(security);
 
-  // Initialize Supabase client with production config
+  // Initialize Supabase client with production config. Sessions persist
+  // in secure storage (never plaintext); auth debug logging stays off so
+  // tokens cannot leak into device logs.
   if (AppConfig.isConfigured) {
     try {
       await Supabase.initialize(
         url: AppConfig.supabaseUrl,
         publishableKey: AppConfig.supabaseAnonKey,
-        debug: kDebugMode,
+        debug: false,
+        authOptions: FlutterAuthClientOptions(
+          localStorage: SecureSessionStorage(security),
+        ),
       );
       AppLogger.info('Supabase initialized successfully.');
     } catch (e, stack) {
