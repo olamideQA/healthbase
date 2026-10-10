@@ -48,11 +48,6 @@ class DashboardScreen extends ConsumerWidget {
             onPressed: () => showClinicalDisclaimerSheet(context),
           ),
           IconButton(
-            icon: const Icon(Icons.style_outlined),
-            tooltip: 'Design System Gallery',
-            onPressed: () => context.push('/design-system'),
-          ),
-          IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Sign Out',
             onPressed: () async {
