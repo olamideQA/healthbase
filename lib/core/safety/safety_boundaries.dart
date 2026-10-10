@@ -20,6 +20,21 @@ class SafetyBoundaries {
       'This pulse estimate is for personal tracking purposes only and is not a clinical medical measurement. '
       'It cannot diagnose arrhythmias, heart disease, or cardiovascular conditions.';
 
+  /// Statement shown on trends and charts views.
+  static const String trendsDisclaimer =
+      'Trend lines illustrate statistical progression across your personal logged entries. '
+      'They do not constitute a clinical disease assessment or prognostic medical evaluation.';
+
+  /// Statement shown on medication tracking views.
+  static const String medicationsDisclaimer =
+      'HealthBase records your medication schedule for personal tracking. '
+      'It does not analyze pharmacological contraindications or replace professional prescription guidance.';
+
+  /// Statement shown on PDF reports and summary exports.
+  static const String reportsDisclaimer =
+      'This summary is compiled from self-recorded measurements to assist in discussions with your physician. '
+      'It is not a formal clinical diagnostic document or hospital lab result.';
+
   /// Emergency red-flag symptoms that require immediate medical attention.
   static const List<String> urgentSymptoms = <String>[
     'Chest discomfort or pain',

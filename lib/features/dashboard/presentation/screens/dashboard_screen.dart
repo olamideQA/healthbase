@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../../core/safety/safety_boundaries.dart';
+import '../../../../core/safety/widgets/clinical_disclaimer_sheet.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -40,6 +41,11 @@ class DashboardScreen extends ConsumerWidget {
             icon: const Icon(Icons.person_outline),
             tooltip: 'Health Profile',
             onPressed: () => context.push('/profile'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.verified_user_outlined),
+            tooltip: 'Clinical & Safety Policy',
+            onPressed: () => showClinicalDisclaimerSheet(context),
           ),
           IconButton(
             icon: const Icon(Icons.style_outlined),
@@ -239,9 +245,33 @@ class _DashboardContent extends ConsumerWidget {
                   const Icon(Icons.info_outline, size: 18, color: AppColors.neutral600),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
-                    child: Text(
-                      SafetyBoundaries.baselineExplanation,
-                      style: AppTypography.bodySmall.copyWith(color: AppColors.neutral600),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          SafetyBoundaries.generalDisclaimer,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.neutral700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4.0),
+                        Text(
+                          SafetyBoundaries.baselineExplanation,
+                          style: AppTypography.caption.copyWith(color: AppColors.neutral600),
+                        ),
+                        const SizedBox(height: 6.0),
+                        InkWell(
+                          onTap: () => showClinicalDisclaimerSheet(context),
+                          child: Text(
+                            'View Clinical Guidelines & Safety Policy →',
+                            style: AppTypography.caption.copyWith(
+                              color: AppColors.primary700,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

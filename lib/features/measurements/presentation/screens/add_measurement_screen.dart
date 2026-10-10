@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../../core/safety/clinical_thresholds.dart';
+import '../../../../core/safety/emergency_protocols.dart';
+import '../../../../core/safety/widgets/clinical_disclaimer_sheet.dart';
+import '../../../../core/safety/widgets/urgent_care_alert_banner.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/components/app_button.dart';
@@ -38,15 +42,23 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
   void initState() {
     super.initState();
     _selectedType = widget.initialType ?? MeasurementType.heartRate;
+    _primaryController.addListener(_onInputValueChanged);
+    _secondaryController.addListener(_onInputValueChanged);
   }
 
   @override
   void dispose() {
+    _primaryController.removeListener(_onInputValueChanged);
+    _secondaryController.removeListener(_onInputValueChanged);
     _primaryController.dispose();
     _secondaryController.dispose();
     _tertiaryController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  void _onInputValueChanged() {
+    setState(() {});
   }
 
   void _clearFields() {
@@ -55,7 +67,7 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
     _tertiaryController.clear();
   }
 
-  Future<void> _handleSubmit(String profileId, UnitSystem units) async {
+  Measurement? _buildMeasurementFromInputs(String profileId, UnitSystem units) {
     final isMetric = units == UnitSystem.metric;
     double? heartRateBpm;
     double? systolicMmhg;
@@ -68,6 +80,7 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
     switch (_selectedType) {
       case MeasurementType.heartRate:
         heartRateBpm = double.tryParse(_primaryController.text.trim());
+        if (heartRateBpm == null) return null;
         break;
 
       case MeasurementType.bloodPressure:
@@ -76,32 +89,30 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
         if (_tertiaryController.text.trim().isNotEmpty) {
           pulseBpm = double.tryParse(_tertiaryController.text.trim());
         }
+        if (systolicMmhg == null || diastolicMmhg == null) return null;
         break;
 
       case MeasurementType.weight:
         final raw = double.tryParse(_primaryController.text.trim());
-        if (raw != null) {
-          weightKg = isMetric ? raw : UnitConverter.lbsToKg(raw);
-        }
+        if (raw == null) return null;
+        weightKg = isMetric ? raw : UnitConverter.lbsToKg(raw);
         break;
 
       case MeasurementType.temperature:
         final raw = double.tryParse(_primaryController.text.trim());
-        if (raw != null) {
-          temperatureCelsius =
-              isMetric ? raw : UnitConverter.fahrenheitToCelsius(raw);
-        }
+        if (raw == null) return null;
+        temperatureCelsius =
+            isMetric ? raw : UnitConverter.fahrenheitToCelsius(raw);
         break;
 
       case MeasurementType.bloodGlucose:
         final raw = double.tryParse(_primaryController.text.trim());
-        if (raw != null) {
-          glucoseMmolL = isMetric ? raw : raw / 18.0182;
-        }
+        if (raw == null) return null;
+        glucoseMmolL = isMetric ? raw : raw / 18.0182;
         break;
     }
 
-    final measurement = Measurement(
+    return Measurement(
       id: '',
       profileId: profileId,
       type: _selectedType,
@@ -122,6 +133,95 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
+  }
+
+  Future<void> _handleSubmit(String profileId, UnitSystem units) async {
+    final measurement = _buildMeasurementFromInputs(profileId, units);
+    if (measurement == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid numeric measurement.'),
+          backgroundColor: AppColors.statusUrgent,
+        ),
+      );
+      return;
+    }
+
+    // Physical plausibility guard
+    if (!ClinicalThresholds.isPhysicallyPlausible(measurement)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'The entered values fall outside physically plausible boundaries. For blood pressure, systolic must exceed diastolic.',
+          ),
+          backgroundColor: AppColors.statusUrgent,
+        ),
+      );
+      return;
+    }
+
+    // Emergency protocol evaluation
+    final emergencyAlert = EmergencyProtocols.evaluateMeasurement(measurement);
+    if (emergencyAlert != null && emergencyAlert.isImmediateEmergency) {
+      final shouldSave = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppColors.statusUrgent),
+              SizedBox(width: 8),
+              Expanded(child: Text('Clinical Safety Notice')),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                emergencyAlert.headline,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF991B1B),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(emergencyAlert.guidance),
+              const SizedBox(height: 12),
+              const Text(
+                'HealthBase is a monitoring tool and not an emergency service. Do not delay urgent medical care.',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFFB91C1C),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                EmergencyProtocols.launchEmergencyCall('911');
+              },
+              child: const Text(
+                'Call Emergency (911)',
+                style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.bold),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Save Record Anyway'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldSave != true) return;
+    }
 
     final success = await ref
         .read(measurementControllerProvider.notifier)
@@ -154,6 +254,13 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Record Measurement'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'Clinical & Safety Guidelines',
+            onPressed: () => showClinicalDisclaimerSheet(context),
+          ),
+        ],
       ),
       body: SafeArea(
         child: profileAsync.when(
@@ -166,6 +273,10 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
 
             final units = profile.preferredUnits;
             final isMetric = units == UnitSystem.metric;
+            final previewMeasurement = _buildMeasurementFromInputs(profile.id, units);
+            final liveAlert = previewMeasurement != null
+                ? EmergencyProtocols.evaluateMeasurement(previewMeasurement)
+                : null;
 
             return SingleChildScrollView(
               padding: AppSpacing.paddingAllLg,
@@ -290,6 +401,12 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
+
+                    // Real-time clinical alert if entered value is in critical range
+                    if (liveAlert != null) ...[
+                      UrgentCareAlertBanner(alert: liveAlert),
+                      const SizedBox(height: AppSpacing.lg),
+                    ],
 
                     // Context, Source & Provenance
                     AppCard(

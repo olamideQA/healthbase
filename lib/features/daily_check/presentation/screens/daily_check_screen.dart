@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/safety/safety_boundaries.dart';
+import '../../../../core/safety/widgets/clinical_disclaimer_sheet.dart';
+import '../../../../core/safety/widgets/emergency_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -121,6 +123,13 @@ class _DailyCheckScreenState extends ConsumerState<DailyCheckScreen> {
             }
           },
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'Clinical & Safety Guidelines',
+            onPressed: () => showClinicalDisclaimerSheet(context),
+          ),
+        ],
       ),
       body: SafeArea(
         child: profileAsync.when(
@@ -219,19 +228,39 @@ class _DailyCheckScreenState extends ConsumerState<DailyCheckScreen> {
               borderRadius: AppSpacing.roundedSm,
               border: Border.all(color: AppColors.statusUrgent),
             ),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.warning_amber_rounded, color: AppColors.statusUrgent),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Text(
-                    SafetyBoundaries.emergencyWarningMessage,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: const Color(0xFF991B1B),
-                      fontWeight: FontWeight.w600,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: AppColors.statusUrgent),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Text(
+                        SafetyBoundaries.emergencyWarningMessage,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: const Color(0xFF991B1B),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6.0),
                   ),
+                  icon: const Icon(Icons.phone_in_talk, size: 14.0),
+                  label: const Text(
+                    'Emergency Directory (911 / 112)',
+                    style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () => showEmergencyDialog(context),
                 ),
               ],
             ),
@@ -699,19 +728,39 @@ class _DailyCheckScreenState extends ConsumerState<DailyCheckScreen> {
               borderRadius: AppSpacing.roundedSm,
               border: Border.all(color: AppColors.statusUrgent),
             ),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.warning_amber_rounded, color: AppColors.statusUrgent),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Text(
-                    SafetyBoundaries.emergencyWarningMessage,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: const Color(0xFF991B1B),
-                      fontWeight: FontWeight.w600,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: AppColors.statusUrgent),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Text(
+                        SafetyBoundaries.emergencyWarningMessage,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: const Color(0xFF991B1B),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6.0),
                   ),
+                  icon: const Icon(Icons.phone_in_talk, size: 14.0),
+                  label: const Text(
+                    'Emergency Directory (911 / 112)',
+                    style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () => showEmergencyDialog(context),
                 ),
               ],
             ),
@@ -909,19 +958,39 @@ class _DailyCheckScreenState extends ConsumerState<DailyCheckScreen> {
               borderRadius: AppSpacing.roundedSm,
               border: Border.all(color: AppColors.statusUrgent),
             ),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.warning_amber_rounded, color: AppColors.statusUrgent),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Text(
-                    SafetyBoundaries.emergencyWarningMessage,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: const Color(0xFF991B1B),
-                      fontWeight: FontWeight.w600,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: AppColors.statusUrgent),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Text(
+                        SafetyBoundaries.emergencyWarningMessage,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: const Color(0xFF991B1B),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6.0),
                   ),
+                  icon: const Icon(Icons.phone_in_talk, size: 14.0),
+                  label: const Text(
+                    'Emergency Directory (911 / 112)',
+                    style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () => showEmergencyDialog(context),
                 ),
               ],
             ),

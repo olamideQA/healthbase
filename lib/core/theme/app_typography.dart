@@ -70,11 +70,25 @@ class AppTypography {
     height: 1.4,
   );
 
+  static const TextStyle labelLarge = TextStyle(
+    fontSize: 14.0,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0.1,
+    height: 1.45,
+  );
+
   static const TextStyle labelMedium = TextStyle(
     fontSize: 12.0,
     fontWeight: FontWeight.w500,
     letterSpacing: 0.3,
     height: 1.4,
+  );
+
+  static const TextStyle caption = TextStyle(
+    fontSize: 11.0,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 0.4,
+    height: 1.35,
   );
 
   /// Metric display style for clinical numbers (e.g. "120/80", "72 BPM").
