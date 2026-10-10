@@ -19,6 +19,7 @@ import '../../features/medications/presentation/screens/medications_screen.dart'
 import '../../features/medications/presentation/screens/add_medication_screen.dart';
 import '../../features/family/presentation/screens/family_screen.dart';
 import '../../features/family/presentation/screens/add_family_member_screen.dart';
+import '../../features/reports/presentation/screens/health_reports_screen.dart';
 import '../theme/design_system_gallery.dart';
 
 class AppRoutes {
@@ -43,6 +44,7 @@ class AppRoutes {
   static const String addMedication = '/medications/add';
   static const String family = '/family';
   static const String addFamilyMember = '/family/add';
+  static const String reports = '/reports';
   static const String designSystem = '/design-system';
 }
 
@@ -129,6 +131,10 @@ GoRouter createAppRouter({
       GoRoute(
         path: AppRoutes.addFamilyMember,
         builder: (context, state) => const AddFamilyMemberScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.reports,
+        builder: (context, state) => const HealthReportsScreen(),
       ),
       GoRoute(
         path: AppRoutes.designSystem,

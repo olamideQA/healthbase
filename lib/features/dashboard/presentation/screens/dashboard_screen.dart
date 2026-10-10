@@ -591,6 +591,15 @@ class _DashboardContent extends ConsumerWidget {
                 onPressed: () => context.push(AppRoutes.family),
               ),
             ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: AppButton(
+                label: 'Health Reports',
+                variant: AppButtonVariant.outline,
+                icon: Icons.picture_as_pdf_outlined,
+                onPressed: () => context.push(AppRoutes.reports),
+              ),
+            ),
           ],
         ),
       ],
