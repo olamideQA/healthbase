@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:healthbase/core/db/app_database.dart';
+import 'package:healthbase/core/errors/failures.dart';
 import 'package:healthbase/core/sync/sync_engine.dart';
 import 'package:healthbase/features/daily_check/data/daily_check_repository.dart';
 import 'package:healthbase/features/daily_check/domain/models/daily_check.dart';
@@ -193,6 +194,32 @@ void main() {
       final glucoseMeas = measurements.firstWhere((Measurement m) => m.type == MeasurementType.bloodGlucose);
       expect(glucoseMeas.glucoseMmolL, 5.8);
       expect(glucoseMeas.dailyCheckId, completedCheck.id);
+    });
+
+    test('completeCheck rejects a second check on the same day', () async {
+      const profileId = 'user-profile-dupe';
+      await repository.completeCheck(
+        profileId: profileId,
+        feeling: CheckFeeling.good,
+        medicationStatus: MedicationCheckStatus.yes,
+        symptoms: const [],
+        heartRateBpm: 70.0,
+      );
+
+      expect(
+        () => repository.completeCheck(
+          profileId: profileId,
+          feeling: CheckFeeling.okay,
+          medicationStatus: MedicationCheckStatus.yes,
+          symptoms: const [],
+          heartRateBpm: 71.0,
+        ),
+        throwsA(isA<ValidationFailure>().having(
+          (f) => f.code,
+          'code',
+          'DUPLICATE_DAILY_CHECK',
+        )),
+      );
     });
 
     test('watchTodayCheck emits reactive updates when completed', () async {

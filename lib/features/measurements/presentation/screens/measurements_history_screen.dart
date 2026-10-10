@@ -354,7 +354,7 @@ class _MeasurementsHistoryScreenState
               size: 18.0, color: AppColors.neutral400),
         ),
       SyncStatus.syncError => const Tooltip(
-          message: 'Sync error. Will retry.',
+          message: 'Upload failed. Will retry automatically on next sync.',
           child: Icon(Icons.cloud_off, size: 18.0, color: AppColors.statusUrgent),
         ),
     };

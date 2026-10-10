@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/db/app_database.dart';
+import '../../../../core/errors/failures.dart';
 import '../../../../core/sync/sync_engine.dart';
 import '../../measurements/data/measurement_repository.dart';
 import '../../measurements/domain/models/measurement.dart';
@@ -197,6 +198,18 @@ class DailyCheckRepository {
     double? weightKg,
     double? glucoseMmolL,
   }) async {
+    // One check per profile per day: the remote database enforces this with
+    // a unique index, so reject locally with a clear message instead of
+    // writing a row that can never upload.
+    final existing = await getTodayCheck(profileId);
+    if (existing != null) {
+      throw ValidationFailure(
+        message:
+            'Today\u2019s health check is already recorded. Only one check per day is kept.',
+        code: 'DUPLICATE_DAILY_CHECK',
+      );
+    }
+
     final checkId = _uuid.v4();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);

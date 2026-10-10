@@ -49,17 +49,35 @@ Future<void> wipeLocalData({
 Future<int> countPendingLocalChanges(AppDatabase db) async {
   var total = 0;
   total += await _countUnsynced(
-      db, db.localMeasurementsTable, db.localMeasurementsTable.syncStatus);
+    db,
+    db.localMeasurementsTable,
+    db.localMeasurementsTable.syncStatus,
+  );
   total += await _countUnsynced(
-      db, db.localDailyChecksTable, db.localDailyChecksTable.syncStatus);
+    db,
+    db.localDailyChecksTable,
+    db.localDailyChecksTable.syncStatus,
+  );
   total += await _countUnsynced(
-      db, db.localMedicationsTable, db.localMedicationsTable.syncStatus);
-  total += await _countUnsynced(db, db.localMedicationEventsTable,
-      db.localMedicationEventsTable.syncStatus);
-  total += await _countUnsynced(db, db.localFamilyProfilesTable,
-      db.localFamilyProfilesTable.syncStatus);
+    db,
+    db.localMedicationsTable,
+    db.localMedicationsTable.syncStatus,
+  );
   total += await _countUnsynced(
-      db, db.localProfileAccessTable, db.localProfileAccessTable.syncStatus);
+    db,
+    db.localMedicationEventsTable,
+    db.localMedicationEventsTable.syncStatus,
+  );
+  total += await _countUnsynced(
+    db,
+    db.localFamilyProfilesTable,
+    db.localFamilyProfilesTable.syncStatus,
+  );
+  total += await _countUnsynced(
+    db,
+    db.localProfileAccessTable,
+    db.localProfileAccessTable.syncStatus,
+  );
   return total;
 }
 

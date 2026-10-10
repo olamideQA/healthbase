@@ -1,3 +1,5 @@
+import 'dart:math' show min;
+
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
@@ -6,24 +8,98 @@ import '../security/security_service.dart';
 
 final syncEngineProvider = Provider<SyncEngine>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  return SyncEngine(
-    db: db,
-    supabase: sb.Supabase.instance.client,
-  );
+  return SyncEngine(db: db, supabase: sb.Supabase.instance.client);
 });
 
 /// Offline-first bidirectional sync engine between local Drift SQLite and remote Supabase.
 class SyncEngine {
-  SyncEngine({
-    required this.db,
-    required this.supabase,
-  });
+  SyncEngine({required this.db, required this.supabase});
 
   final AppDatabase db;
   final sb.SupabaseClient supabase;
 
   bool _isSyncing = false;
   bool get isSyncing => _isSyncing;
+
+  /// Per-profile push serialization: concurrent writers (e.g. the 5
+  /// measurements of one daily check) queue behind each other so parents
+  /// (daily checks) always land before children (measurements) and two
+  /// pushes never interleave on the same profile.
+  final Map<String, Future<void>> _profilePushLocks = {};
+
+  Future<T> _serializedPush<T>(String profileId, Future<T> Function() work) {
+    final previous = _profilePushLocks[profileId] ?? Future.value();
+    final next = previous.then((_) => work());
+    // The chain continues regardless of outcome; callers still observe
+    // their own result or error via `next`.
+    _profilePushLocks[profileId] = next.then((_) {}, onError: (_) {});
+    return next;
+  }
+
+  /// Retry bookkeeping lives in the local metadata table (no schema change
+  /// needed): `sync_retry_<table>_<rowId>` -> `attempts|nextRetryMs|fatal`.
+  static const int _maxBackoffSeconds = 3600;
+
+  String _retryKey(String table, String rowId) => 'sync_retry_${table}_$rowId';
+
+  Future<_RetryState> _readRetry(String table, String rowId) async {
+    final row =
+        await (db.select(db.localAppMetadataTable)
+              ..where((tbl) => tbl.key.equals(_retryKey(table, rowId))))
+            .getSingleOrNull();
+    if (row == null) return const _RetryState(0, null, false);
+    final parts = row.value.split('|');
+    if (parts.length != 3) return const _RetryState(0, null, false);
+    return _RetryState(
+      int.tryParse(parts[0]) ?? 0,
+      int.tryParse(parts[1]) != null
+          ? DateTime.fromMillisecondsSinceEpoch(int.parse(parts[1]))
+          : null,
+      parts[2] == '1',
+    );
+  }
+
+  Future<void> _writeRetry(
+    String table,
+    String rowId, {
+    required int attempts,
+    required bool fatal,
+  }) async {
+    final shift = attempts.clamp(0, 5);
+    final delaySeconds = min(30 * (1 << shift), _maxBackoffSeconds);
+    final nextRetry = DateTime.now().add(
+      Duration(seconds: delaySeconds),
+    );
+    await db
+        .into(db.localAppMetadataTable)
+        .insertOnConflictUpdate(
+          LocalAppMetadataTableCompanion(
+            key: Value(_retryKey(table, rowId)),
+            value: Value(
+              '$attempts|${nextRetry.millisecondsSinceEpoch}|'
+              '${fatal ? '1' : '0'}',
+            ),
+            updatedAt: Value(DateTime.now()),
+          ),
+        );
+  }
+
+  Future<void> _clearRetry(String table, String rowId) async {
+    await (db.delete(
+      db.localAppMetadataTable,
+    )..where((tbl) => tbl.key.equals(_retryKey(table, rowId)))).go();
+  }
+
+  /// Permanent failures (unique conflict, permission denied) must NOT be
+  /// retried forever — they need user/developer attention instead.
+  bool _isFatalSyncError(Object e) {
+    if (e is sb.PostgrestException) {
+      // 23505 unique_violation (e.g. second daily check for the same day),
+      // 42501 insufficient_privilege (RLS deny).
+      return e.code == '23505' || e.code == '42501';
+    }
+    return false;
+  }
 
   /// Perform a full push and incremental pull sync for a profile.
   /// Daily checks are pushed before measurements so the remote
@@ -44,30 +120,58 @@ class SyncEngine {
   }
 
   /// Push all local daily checks (and their symptoms) marked pending.
+  /// `sync_error` rows are retried once their backoff expires; permanent
+  /// failures (unique conflict, RLS deny) are left for attention, not looped.
   /// Returns the number of checks marked synced.
-  Future<int> pushPendingDailyChecks(String profileId) async {
-    final pending = await (db.select(db.localDailyChecksTable)
-          ..where((tbl) =>
-              tbl.profileId.equals(profileId) &
-              (tbl.syncStatus.equals('pending_insert') |
-                  tbl.syncStatus.equals('pending_update') |
-                  tbl.syncStatus.equals('pending_delete'))))
-        .get();
+  Future<int> pushPendingDailyChecks(String profileId) {
+    return _serializedPush(profileId, () async {
+      final candidates =
+          await (db.select(db.localDailyChecksTable)..where(
+                (tbl) =>
+                    tbl.profileId.equals(profileId) &
+                    (tbl.syncStatus.equals('pending_insert') |
+                        tbl.syncStatus.equals('pending_update') |
+                        tbl.syncStatus.equals('pending_delete') |
+                        tbl.syncStatus.equals('sync_error')),
+              ))
+              .get();
 
-    if (pending.isEmpty) return 0;
+      final now = DateTime.now();
+      final pending = <LocalDailyChecksTableData>[];
+      for (final row in candidates) {
+        if (row.syncStatus != 'sync_error') {
+          pending.add(row);
+          continue;
+        }
+        final retry = await _readRetry('daily_checks', row.id);
+        if (!retry.fatal &&
+            (retry.nextRetry == null || !retry.nextRetry!.isAfter(now))) {
+          pending.add(row);
+        }
+      }
 
+      if (pending.isEmpty) return 0;
+
+      return _pushDailyCheckRows(profileId, pending);
+    });
+  }
+
+  Future<int> _pushDailyCheckRows(
+    String profileId,
+    List<LocalDailyChecksTableData> pending,
+  ) async {
     int syncedCount = 0;
     for (final row in pending) {
       try {
         if (row.isDeleted) {
           await supabase.from('daily_checks').delete().eq('id', row.id);
-          final symptoms = await (db.select(db.localDailyCheckSymptomsTable)
-                ..where((tbl) => tbl.dailyCheckId.equals(row.id)))
-              .get();
+          final symptoms = await (db.select(
+            db.localDailyCheckSymptomsTable,
+          )..where((tbl) => tbl.dailyCheckId.equals(row.id))).get();
           for (final s in symptoms) {
-            await (db.delete(db.localDailyCheckSymptomsTable)
-                  ..where((tbl) => tbl.id.equals(s.id)))
-                .go();
+            await (db.delete(
+              db.localDailyCheckSymptomsTable,
+            )..where((tbl) => tbl.id.equals(s.id))).go();
           }
         } else {
           final payload = <String, dynamic>{
@@ -81,40 +185,47 @@ class SyncEngine {
           };
           await supabase.from('daily_checks').upsert(payload, onConflict: 'id');
 
-          final symptoms = await (db.select(db.localDailyCheckSymptomsTable)
-                ..where((tbl) => tbl.dailyCheckId.equals(row.id)))
-              .get();
+          final symptoms = await (db.select(
+            db.localDailyCheckSymptomsTable,
+          )..where((tbl) => tbl.dailyCheckId.equals(row.id))).get();
           for (final s in symptoms) {
-            await supabase.from('daily_check_symptoms').upsert(
-              <String, dynamic>{
-                'id': s.id,
-                'daily_check_id': s.dailyCheckId,
-                'symptom_code': s.symptomCode,
-                'is_urgent': s.isUrgent,
-                if (s.customDescription != null)
-                  'custom_description': s.customDescription,
-              },
-              onConflict: 'id',
-            );
+            await supabase
+                .from('daily_check_symptoms')
+                .upsert(<String, dynamic>{
+                  'id': s.id,
+                  'daily_check_id': s.dailyCheckId,
+                  'symptom_code': s.symptomCode,
+                  'is_urgent': s.isUrgent,
+                  if (s.customDescription != null)
+                    'custom_description': s.customDescription,
+                }, onConflict: 'id');
           }
         }
 
-        await (db.update(db.localDailyChecksTable)
-              ..where((tbl) => tbl.id.equals(row.id)))
-            .write(
-          const LocalDailyChecksTableCompanion(
-            syncStatus: Value('synced'),
-          ),
+        await (db.update(
+          db.localDailyChecksTable,
+        )..where((tbl) => tbl.id.equals(row.id))).write(
+          const LocalDailyChecksTableCompanion(syncStatus: Value('synced')),
         );
+        await _clearRetry('daily_checks', row.id);
         syncedCount++;
       } catch (e) {
-        AppLogger.warning('Failed to push daily check ${row.id}: $e');
-        await (db.update(db.localDailyChecksTable)
-              ..where((tbl) => tbl.id.equals(row.id)))
-            .write(
-          const LocalDailyChecksTableCompanion(
-            syncStatus: Value('sync_error'),
-          ),
+        final fatal = _isFatalSyncError(e);
+        final previous = await _readRetry('daily_checks', row.id);
+        await _writeRetry(
+          'daily_checks',
+          row.id,
+          attempts: previous.attempts + 1,
+          fatal: fatal,
+        );
+        AppLogger.warning(
+          'Failed to push daily check ${row.id} '
+          '(attempt ${previous.attempts + 1}${fatal ? ', permanent' : ', will retry'}): $e',
+        );
+        await (db.update(
+          db.localDailyChecksTable,
+        )..where((tbl) => tbl.id.equals(row.id))).write(
+          const LocalDailyChecksTableCompanion(syncStatus: Value('sync_error')),
         );
       }
     }
@@ -125,9 +236,9 @@ class SyncEngine {
   Future<int> pullRemoteDailyChecks(String profileId) async {
     const pageSize = 200;
     final metaKey = 'last_sync_dailycheck_$profileId';
-    final lastSyncRow = await (db.select(db.localAppMetadataTable)
-          ..where((tbl) => tbl.key.equals(metaKey)))
-        .getSingleOrNull();
+    final lastSyncRow = await (db.select(
+      db.localAppMetadataTable,
+    )..where((tbl) => tbl.key.equals(metaKey))).getSingleOrNull();
 
     final lastSyncTime = lastSyncRow != null
         ? DateTime.tryParse(lastSyncRow.value)?.toUtc().toIso8601String()
@@ -142,7 +253,9 @@ class SyncEngine {
       query = query.gt('updated_at', lastSyncTime);
     }
 
-    final remoteRows = await query.order('updated_at', ascending: true).limit(pageSize);
+    final remoteRows = await query
+        .order('updated_at', ascending: true)
+        .limit(pageSize);
 
     DateTime? latestUpdated;
     int pulledCount = 0;
@@ -155,7 +268,9 @@ class SyncEngine {
       }
       final checkId = map['id'] as String;
 
-      await db.into(db.localDailyChecksTable).insertOnConflictUpdate(
+      await db
+          .into(db.localDailyChecksTable)
+          .insertOnConflictUpdate(
             LocalDailyChecksTableCompanion(
               id: Value(checkId),
               profileId: Value(map['profile_id'] as String),
@@ -177,7 +292,9 @@ class SyncEngine {
           .eq('daily_check_id', checkId);
       for (final sJson in symptomRows as List) {
         final s = sJson as Map<String, dynamic>;
-        await db.into(db.localDailyCheckSymptomsTable).insertOnConflictUpdate(
+        await db
+            .into(db.localDailyCheckSymptomsTable)
+            .insertOnConflictUpdate(
               LocalDailyCheckSymptomsTableCompanion(
                 id: Value(s['id'] as String),
                 dailyCheckId: Value(s['daily_check_id'] as String),
@@ -196,7 +313,9 @@ class SyncEngine {
     }
 
     if (latestUpdated != null) {
-      await db.into(db.localAppMetadataTable).insertOnConflictUpdate(
+      await db
+          .into(db.localAppMetadataTable)
+          .insertOnConflictUpdate(
             LocalAppMetadataTableCompanion(
               key: Value(metaKey),
               value: Value(latestUpdated.toIso8601String()),
@@ -208,73 +327,105 @@ class SyncEngine {
     return pulledCount;
   }
 
-  /// Push all local measurements marked pending to Supabase via idempotent upsert.
-  Future<int> pushPendingMeasurements(String profileId) async {
-    final pending = await (db.select(db.localMeasurementsTable)
-          ..where((tbl) =>
-              tbl.profileId.equals(profileId) &
-              (tbl.syncStatus.equals('pending_insert') |
-                  tbl.syncStatus.equals('pending_update') |
-                  tbl.syncStatus.equals('pending_delete'))))
-        .get();
+  /// Push all local measurements marked pending to Supabase via idempotent
+  /// upsert. Retries `sync_error` rows with backoff; permanent failures are
+  /// recorded, not looped. Serialized per profile so a daily check's parent
+  /// row is pushed before its measurement children.
+  Future<int> pushPendingMeasurements(String profileId) {
+    return _serializedPush(profileId, () async {
+      final candidates =
+          await (db.select(db.localMeasurementsTable)..where(
+                (tbl) =>
+                    tbl.profileId.equals(profileId) &
+                    (tbl.syncStatus.equals('pending_insert') |
+                        tbl.syncStatus.equals('pending_update') |
+                        tbl.syncStatus.equals('pending_delete') |
+                        tbl.syncStatus.equals('sync_error')),
+              ))
+              .get();
 
-    if (pending.isEmpty) return 0;
-
-    int syncedCount = 0;
-    for (final row in pending) {
-      try {
-        final payload = <String, dynamic>{
-          'id': row.id,
-          'profile_id': row.profileId,
-          'type': row.type,
-          if (row.heartRateBpm != null) 'heart_rate_bpm': row.heartRateBpm,
-          if (row.systolicMmhg != null) 'systolic_mmhg': row.systolicMmhg,
-          if (row.diastolicMmhg != null) 'diastolic_mmhg': row.diastolicMmhg,
-          if (row.pulseBpm != null) 'pulse_bpm': row.pulseBpm,
-          if (row.temperatureCelsius != null)
-            'temperature_celsius': row.temperatureCelsius,
-          if (row.weightKg != null) 'weight_kg': row.weightKg,
-          if (row.glucoseMmolL != null) 'glucose_mmol_l': row.glucoseMmolL,
-          'source': row.source,
-          'provenance': row.provenance,
-          'recorded_at': row.recordedAt.toUtc().toIso8601String(),
-          'recorded_utc_offset': row.recordedUtcOffset,
-          if (row.notes != null) 'notes': row.notes,
-          if (row.dailyCheckId != null) 'daily_check_id': row.dailyCheckId,
-          'is_deleted': row.isDeleted,
-        };
-
-        await supabase.from('measurements').upsert(payload, onConflict: 'id');
-
-        // Mark as synced locally
-        await (db.update(db.localMeasurementsTable)
-              ..where((tbl) => tbl.id.equals(row.id)))
-            .write(
-          const LocalMeasurementsTableCompanion(
-            syncStatus: Value('synced'),
-          ),
-        );
-        syncedCount++;
-      } catch (e) {
-        AppLogger.warning('Failed to push measurement ${row.id} to Supabase: $e');
-        await (db.update(db.localMeasurementsTable)
-              ..where((tbl) => tbl.id.equals(row.id)))
-            .write(
-          const LocalMeasurementsTableCompanion(
-            syncStatus: Value('sync_error'),
-          ),
-        );
+      final now = DateTime.now();
+      final pending = <LocalMeasurementsTableData>[];
+      for (final row in candidates) {
+        if (row.syncStatus != 'sync_error') {
+          pending.add(row);
+          continue;
+        }
+        final retry = await _readRetry('measurements', row.id);
+        if (!retry.fatal &&
+            (retry.nextRetry == null || !retry.nextRetry!.isAfter(now))) {
+          pending.add(row);
+        }
       }
-    }
-    return syncedCount;
+
+      if (pending.isEmpty) return 0;
+
+      int syncedCount = 0;
+      for (final row in pending) {
+        try {
+          final payload = <String, dynamic>{
+            'id': row.id,
+            'profile_id': row.profileId,
+            'type': row.type,
+            if (row.heartRateBpm != null) 'heart_rate_bpm': row.heartRateBpm,
+            if (row.systolicMmhg != null) 'systolic_mmhg': row.systolicMmhg,
+            if (row.diastolicMmhg != null) 'diastolic_mmhg': row.diastolicMmhg,
+            if (row.pulseBpm != null) 'pulse_bpm': row.pulseBpm,
+            if (row.temperatureCelsius != null)
+              'temperature_celsius': row.temperatureCelsius,
+            if (row.weightKg != null) 'weight_kg': row.weightKg,
+            if (row.glucoseMmolL != null) 'glucose_mmol_l': row.glucoseMmolL,
+            'source': row.source,
+            'provenance': row.provenance,
+            'recorded_at': row.recordedAt.toUtc().toIso8601String(),
+            'recorded_utc_offset': row.recordedUtcOffset,
+            if (row.notes != null) 'notes': row.notes,
+            if (row.dailyCheckId != null) 'daily_check_id': row.dailyCheckId,
+            'is_deleted': row.isDeleted,
+          };
+
+          await supabase.from('measurements').upsert(payload, onConflict: 'id');
+
+          // Mark as synced locally
+          await (db.update(
+            db.localMeasurementsTable,
+          )..where((tbl) => tbl.id.equals(row.id))).write(
+            const LocalMeasurementsTableCompanion(syncStatus: Value('synced')),
+          );
+          await _clearRetry('measurements', row.id);
+          syncedCount++;
+        } catch (e) {
+          final fatal = _isFatalSyncError(e);
+          final previous = await _readRetry('measurements', row.id);
+          await _writeRetry(
+            'measurements',
+            row.id,
+            attempts: previous.attempts + 1,
+            fatal: fatal,
+          );
+          AppLogger.warning(
+            'Failed to push measurement ${row.id} '
+            '(attempt ${previous.attempts + 1}${fatal ? ', permanent' : ', will retry'}): $e',
+          );
+          await (db.update(
+            db.localMeasurementsTable,
+          )..where((tbl) => tbl.id.equals(row.id))).write(
+            const LocalMeasurementsTableCompanion(
+              syncStatus: Value('sync_error'),
+            ),
+          );
+        }
+      }
+      return syncedCount;
+    });
   }
 
   /// Pull remote measurements updated since last sync cursor.
   Future<int> pullRemoteMeasurements(String profileId) async {
     final metaKey = 'last_sync_meas_$profileId';
-    final lastSyncRow = await (db.select(db.localAppMetadataTable)
-          ..where((tbl) => tbl.key.equals(metaKey)))
-        .getSingleOrNull();
+    final lastSyncRow = await (db.select(
+      db.localAppMetadataTable,
+    )..where((tbl) => tbl.key.equals(metaKey))).getSingleOrNull();
 
     final lastSyncTime = lastSyncRow != null
         ? DateTime.tryParse(lastSyncRow.value)?.toUtc().toIso8601String()
@@ -289,7 +440,9 @@ class SyncEngine {
       query = query.gt('updated_at', lastSyncTime);
     }
 
-    final remoteRows = await query.order('updated_at', ascending: true).limit(200);
+    final remoteRows = await query
+        .order('updated_at', ascending: true)
+        .limit(200);
 
     DateTime? latestUpdated;
     int pulledCount = 0;
@@ -301,7 +454,9 @@ class SyncEngine {
         latestUpdated = updatedAt;
       }
 
-      await db.into(db.localMeasurementsTable).insertOnConflictUpdate(
+      await db
+          .into(db.localMeasurementsTable)
+          .insertOnConflictUpdate(
             LocalMeasurementsTableCompanion(
               id: Value(map['id'] as String),
               profileId: Value(map['profile_id'] as String),
@@ -310,12 +465,15 @@ class SyncEngine {
               systolicMmhg: Value((map['systolic_mmhg'] as num?)?.toDouble()),
               diastolicMmhg: Value((map['diastolic_mmhg'] as num?)?.toDouble()),
               pulseBpm: Value((map['pulse_bpm'] as num?)?.toDouble()),
-              temperatureCelsius:
-                  Value((map['temperature_celsius'] as num?)?.toDouble()),
+              temperatureCelsius: Value(
+                (map['temperature_celsius'] as num?)?.toDouble(),
+              ),
               weightKg: Value((map['weight_kg'] as num?)?.toDouble()),
               glucoseMmolL: Value((map['glucose_mmol_l'] as num?)?.toDouble()),
               source: Value(map['source'] as String? ?? 'manual'),
-              provenance: Value(map['provenance'] as String? ?? 'manually_entered'),
+              provenance: Value(
+                map['provenance'] as String? ?? 'manually_entered',
+              ),
               recordedAt: Value(DateTime.parse(map['recorded_at'] as String)),
               recordedUtcOffset: Value(map['recorded_utc_offset'] as int? ?? 0),
               notes: Value(map['notes'] as String?),
@@ -331,7 +489,9 @@ class SyncEngine {
     }
 
     if (latestUpdated != null) {
-      await db.into(db.localAppMetadataTable).insertOnConflictUpdate(
+      await db
+          .into(db.localAppMetadataTable)
+          .insertOnConflictUpdate(
             LocalAppMetadataTableCompanion(
               key: Value(metaKey),
               value: Value(latestUpdated.toIso8601String()),
@@ -342,4 +502,15 @@ class SyncEngine {
 
     return pulledCount;
   }
+}
+
+/// Retry bookkeeping for one failed row: how many attempts so far, when
+/// the next retry is due (`null` = immediately), and whether the failure
+/// is permanent (never retry, needs attention instead).
+class _RetryState {
+  const _RetryState(this.attempts, this.nextRetry, this.fatal);
+
+  final int attempts;
+  final DateTime? nextRetry;
+  final bool fatal;
 }

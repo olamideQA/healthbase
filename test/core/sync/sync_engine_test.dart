@@ -120,6 +120,116 @@ void main() {
       verify(() => mockSymptomsBuilder.upsert(any(), onConflict: 'id')).called(2);
     });
 
+    test('pushPendingMeasurements retries sync_error rows after backoff expires',
+        () async {
+      await db.into(db.localMeasurementsTable).insert(
+            LocalMeasurementsTableCompanion.insert(
+              id: 'm-retry-1',
+              profileId: 'p1',
+              type: 'heart_rate',
+              heartRateBpm: const drift.Value(72.0),
+              recordedAt: DateTime.now(),
+              syncStatus: const drift.Value('pending_insert'),
+            ),
+          );
+
+      // First attempt fails (offline).
+      when(() => mockQueryBuilder.upsert(any(), onConflict: 'id')).thenAnswer(
+          (_) => FakePostgrestFilterBuilder<dynamic>(
+              Future.error(Exception('Network disconnect'))));
+
+      expect(await syncEngine.pushPendingMeasurements('p1'), 0);
+      var row = await (db.select(db.localMeasurementsTable)
+            ..where((tbl) => tbl.id.equals('m-retry-1')))
+          .getSingle();
+      expect(row.syncStatus, 'sync_error');
+
+      // Immediate retry is skipped while backoff is pending.
+      expect(await syncEngine.pushPendingMeasurements('p1'), 0);
+      verify(() => mockQueryBuilder.upsert(any(), onConflict: 'id')).called(1);
+
+      // Simulate backoff expiry, then succeed.
+      final past = DateTime.now()
+          .subtract(const Duration(hours: 2))
+          .millisecondsSinceEpoch;
+      await (db.update(db.localAppMetadataTable)
+            ..where((tbl) =>
+                tbl.key.equals('sync_retry_measurements_m-retry-1')))
+          .write(LocalAppMetadataTableCompanion(value: drift.Value('1|$past|0')));
+      when(() => mockQueryBuilder.upsert(any(), onConflict: 'id')).thenAnswer(
+          (_) => FakePostgrestFilterBuilder<dynamic>(Future.value([])));
+
+      expect(await syncEngine.pushPendingMeasurements('p1'), 1);
+      row = await (db.select(db.localMeasurementsTable)
+            ..where((tbl) => tbl.id.equals('m-retry-1')))
+          .getSingle();
+      expect(row.syncStatus, 'synced');
+    });
+
+    test('pushPendingMeasurements does not retry permanent failures', () async {
+      await db.into(db.localMeasurementsTable).insert(
+            LocalMeasurementsTableCompanion.insert(
+              id: 'm-fatal-1',
+              profileId: 'p1',
+              type: 'heart_rate',
+              heartRateBpm: const drift.Value(72.0),
+              recordedAt: DateTime.now(),
+              syncStatus: const drift.Value('pending_insert'),
+            ),
+          );
+
+      when(() => mockQueryBuilder.upsert(any(), onConflict: 'id')).thenAnswer(
+          (_) => FakePostgrestFilterBuilder<dynamic>(Future.error(
+              const sb.PostgrestException(
+                  message: 'duplicate key value', code: '23505'))));
+
+      expect(await syncEngine.pushPendingMeasurements('p1'), 0);
+
+      // Even after backoff would expire, fatal rows are never retried.
+      final past = DateTime.now()
+          .subtract(const Duration(hours: 2))
+          .millisecondsSinceEpoch;
+      await (db.update(db.localAppMetadataTable)
+            ..where((tbl) => tbl.key.equals('sync_retry_measurements_m-fatal-1')))
+          .write(LocalAppMetadataTableCompanion(value: drift.Value('1|$past|1')));
+      expect(await syncEngine.pushPendingMeasurements('p1'), 0);
+      verify(() => mockQueryBuilder.upsert(any(), onConflict: 'id')).called(1);
+    });
+
+    test('concurrent pushes for one profile are serialized', () async {
+      await db.into(db.localMeasurementsTable).insert(
+            LocalMeasurementsTableCompanion.insert(
+              id: 'm-conc-1',
+              profileId: 'p1',
+              type: 'heart_rate',
+              heartRateBpm: const drift.Value(70.0),
+              recordedAt: DateTime.now(),
+              syncStatus: const drift.Value('pending_insert'),
+            ),
+          );
+      await db.into(db.localMeasurementsTable).insert(
+            LocalMeasurementsTableCompanion.insert(
+              id: 'm-conc-2',
+              profileId: 'p1',
+              type: 'heart_rate',
+              heartRateBpm: const drift.Value(71.0),
+              recordedAt: DateTime.now(),
+              syncStatus: const drift.Value('pending_insert'),
+            ),
+          );
+
+      when(() => mockQueryBuilder.upsert(any(), onConflict: 'id')).thenAnswer(
+          (_) => FakePostgrestFilterBuilder<dynamic>(
+              Future.delayed(const Duration(milliseconds: 20), () => [])));
+
+      final results = await Future.wait([
+        syncEngine.pushPendingMeasurements('p1'),
+        syncEngine.pushPendingMeasurements('p1'),
+      ]);
+      expect(results.reduce((a, b) => a + b), 2);
+      verify(() => mockQueryBuilder.upsert(any(), onConflict: 'id')).called(2);
+    });
+
     test('pushPendingMeasurements sets sync_error on remote failure without crashing', () async {
       await db.into(db.localMeasurementsTable).insert(
             LocalMeasurementsTableCompanion.insert(
