@@ -7,10 +7,6 @@ import '../../../../core/safety/safety_boundaries.dart';
 import '../../../../core/sync/sync_engine.dart';
 import '../domain/models/measurement.dart';
 
-final appDatabaseProvider = Provider<AppDatabase>((ref) {
-  return AppDatabase();
-});
-
 final measurementRepositoryProvider = Provider<MeasurementRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);
   final syncEngine = ref.watch(syncEngineProvider);

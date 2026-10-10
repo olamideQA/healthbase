@@ -364,7 +364,8 @@ class _DashboardContent extends ConsumerWidget {
               child: _buildMetricTile(
                 title: 'Blood pressure',
                 state: summary.bloodPressure,
-                valueText: summary.bloodPressure.latest?.systolicMmhg != null
+                valueText: (summary.bloodPressure.latest?.systolicMmhg != null &&
+                        summary.bloodPressure.latest?.diastolicMmhg != null)
                     ? '${summary.bloodPressure.latest!.systolicMmhg!.toInt()}/${summary.bloodPressure.latest!.diastolicMmhg!.toInt()}'
                     : '--',
                 unitText: 'mmHg',

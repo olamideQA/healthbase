@@ -1,7 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/db/app_database.dart';
-import '../../measurements/data/measurement_repository.dart';
 import '../../measurements/domain/models/measurement.dart';
 import '../domain/models/personal_baseline.dart';
 import '../domain/services/baseline_calculator.dart';

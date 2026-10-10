@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:healthbase/core/db/app_database.dart';
 import 'package:healthbase/features/daily_check/domain/models/daily_check.dart';
 import 'package:healthbase/features/insights/domain/services/insight_generator.dart';
-import 'package:healthbase/features/measurements/data/measurement_repository.dart';
 import 'package:healthbase/features/measurements/domain/models/measurement.dart';
 import 'package:healthbase/features/medications/domain/models/medication.dart';
 import 'package:healthbase/features/profile/data/profile_repository.dart';

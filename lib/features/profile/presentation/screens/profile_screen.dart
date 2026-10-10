@@ -118,9 +118,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _handleUnitToggle(UnitSystem newUnits) async {
     setState(() => _selectedUnits = newUnits);
-    await ref.read(profileControllerProvider.notifier).updateProfile(
-      preferredUnits: newUnits,
-    );
+    await ref.read(profileControllerProvider.notifier).updatePreferredUnits(newUnits);
   }
 
   Future<void> _pickDateOfBirth() async {
@@ -307,7 +305,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                 ],
                 selected: {profile.preferredUnits},
-                onSelectionChanged: (set) => _handleUnitToggle(set.first),
+                emptySelectionAllowed: false,
+                onSelectionChanged: (set) {
+                  if (set.isNotEmpty) {
+                    _handleUnitToggle(set.first);
+                  }
+                },
               ),
             ],
           ),

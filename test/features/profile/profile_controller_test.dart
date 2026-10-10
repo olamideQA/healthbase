@@ -207,5 +207,14 @@ void main() {
             onboardingCompletedAt: any(named: 'onboardingCompletedAt'),
           )).called(1);
     });
+
+    test('updatePreferredUnits optimistically updates state and notifies repository', () async {
+      final controller = container.read(profileControllerProvider.notifier);
+      final success = await controller.updatePreferredUnits(UnitSystem.imperial);
+
+      expect(success, isTrue);
+      expect(container.read(profileControllerProvider).value?.preferredUnits, UnitSystem.imperial);
+      verify(() => mockRepo.updatePreferredUnits(UnitSystem.imperial)).called(1);
+    });
   });
 }

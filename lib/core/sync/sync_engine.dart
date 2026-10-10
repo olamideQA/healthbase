@@ -5,9 +5,9 @@ import '../db/app_database.dart';
 import '../security/security_service.dart';
 
 final syncEngineProvider = Provider<SyncEngine>((ref) {
-  // Use Drift database singleton executor or provider
+  final db = ref.watch(appDatabaseProvider);
   return SyncEngine(
-    db: AppDatabase(),
+    db: db,
     supabase: sb.Supabase.instance.client,
   );
 });

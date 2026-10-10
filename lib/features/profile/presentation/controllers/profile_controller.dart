@@ -30,6 +30,27 @@ class ProfileController extends StateNotifier<AsyncValue<HealthProfile?>> {
     }
   }
 
+  /// Optimistically update preferred unit system without wiping out screen state.
+  Future<bool> updatePreferredUnits(UnitSystem newUnits) async {
+    final current = state.value;
+    if (current != null) {
+      state = AsyncValue.data(current.copyWith(preferredUnits: newUnits));
+    }
+    try {
+      await _repo.updatePreferredUnits(newUnits);
+      _ref.invalidate(myProfileProvider);
+      return true;
+    } on Failure catch (f, st) {
+      if (current != null) state = AsyncValue.data(current);
+      state = AsyncValue.error(f, st);
+      return false;
+    } catch (e, st) {
+      if (current != null) state = AsyncValue.data(current);
+      state = AsyncValue.error(UnexpectedFailure(cause: e), st);
+      return false;
+    }
+  }
+
   /// Update profile attributes with strict physical plausibility validation.
   Future<bool> updateProfile({
     String? displayName,
@@ -54,28 +75,48 @@ class ProfileController extends StateNotifier<AsyncValue<HealthProfile?>> {
       return false;
     }
 
+    final previous = state.value;
     state = const AsyncValue.loading();
     try {
       if (preferredUnits != null) {
         await _repo.updatePreferredUnits(preferredUnits);
       }
 
-      final updated = await _repo.updateMyProfile(
-        displayName: displayName,
-        dateOfBirth: dateOfBirth,
-        sex: sex,
-        heightCm: heightCm,
-        weightKg: weightKg,
-      );
+      final hasProfileFields = displayName != null ||
+          dateOfBirth != null ||
+          sex != null ||
+          heightCm != null ||
+          weightKg != null;
 
-      state = AsyncValue.data(updated);
+      final updated = hasProfileFields
+          ? await _repo.updateMyProfile(
+              displayName: displayName,
+              dateOfBirth: dateOfBirth,
+              sex: sex,
+              heightCm: heightCm,
+              weightKg: weightKg,
+            )
+          : (await _repo.getMyProfile() ??
+              previous?.copyWith(preferredUnits: preferredUnits));
+
+      if (updated != null) {
+        state = AsyncValue.data(updated);
+      }
       _ref.invalidate(myProfileProvider);
       return true;
     } on Failure catch (f, st) {
-      state = AsyncValue.error(f, st);
+      if (previous != null) {
+        state = AsyncValue.data(previous);
+      } else {
+        state = AsyncValue.error(f, st);
+      }
       return false;
     } catch (e, st) {
-      state = AsyncValue.error(UnexpectedFailure(cause: e), st);
+      if (previous != null) {
+        state = AsyncValue.data(previous);
+      } else {
+        state = AsyncValue.error(UnexpectedFailure(cause: e), st);
+      }
       return false;
     }
   }

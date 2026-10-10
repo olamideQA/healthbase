@@ -86,6 +86,12 @@ class ProfileRepository {
           'onboarding_completed_at': onboardingCompletedAt.toIso8601String(),
       };
 
+      if (updatePayload.isEmpty) {
+        final existing = await getMyProfile();
+        if (existing != null) return existing;
+        throw const DatabaseFailure(message: 'Profile not found.');
+      }
+
       final response = await _client
           .from('health_profiles')
           .update(updatePayload)

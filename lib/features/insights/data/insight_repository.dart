@@ -1,7 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/db/app_database.dart';
-import '../../measurements/data/measurement_repository.dart';
 import '../../measurements/domain/models/measurement.dart';
 import '../../profile/domain/models/health_profile.dart';
 import '../domain/models/health_insight.dart';
