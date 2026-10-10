@@ -36,15 +36,25 @@ class SecurityService {
 class AppLogger {
   const AppLogger._();
 
+  static final RegExp _bearerPattern = RegExp(r'bearer\s+[a-zA-Z0-9_\-\.]+', caseSensitive: false);
   static final RegExp _jwtPattern = RegExp(r'eyJ[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+');
   static final RegExp _apiKeyPattern = RegExp(r'sbp_[a-zA-Z0-9]+');
   static final RegExp _emailPattern = RegExp(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+');
+  static final RegExp _passwordPattern = RegExp(
+    r'(password|passphrase|secret)\s*[:=]\s*("[^"]*"|' r"'[^']*'|\S+)",
+    caseSensitive: false,
+  );
 
   /// Redacts sensitive information from a string.
   static String redact(String message) {
-    var sanitized = message.replaceAll(_jwtPattern, '[REDACTED_JWT]');
+    var sanitized = message.replaceAll(_bearerPattern, 'Bearer [REDACTED_TOKEN]');
+    sanitized = sanitized.replaceAll(_jwtPattern, '[REDACTED_JWT]');
     sanitized = sanitized.replaceAll(_apiKeyPattern, '[REDACTED_API_KEY]');
     sanitized = sanitized.replaceAll(_emailPattern, '[REDACTED_EMAIL]');
+    sanitized = sanitized.replaceAllMapped(
+      _passwordPattern,
+      (match) => '${match.group(1)}=[REDACTED_SECRET]',
+    );
     return sanitized;
   }
 
