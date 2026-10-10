@@ -711,6 +711,171 @@ class SyncEngine {
     return pulled;
   }
 
+  /// Pushes locally-created family profiles owned by [ownerAccountId].
+  /// Self profiles are never pushed (the server signup trigger owns them).
+  /// Sharing actions (invite/accept/revoke) stay online-only RPCs; access
+  /// grants are pulled read-only below.
+  Future<int> pushPendingFamilyProfiles(String ownerAccountId) {
+    return _serializedPush(ownerAccountId, () async {
+      final candidates =
+          await (db.select(db.localFamilyProfilesTable)..where(
+                (tbl) =>
+                    tbl.ownerAccountId.equals(ownerAccountId) &
+                    tbl.isSelf.equals(false) &
+                    (tbl.syncStatus.equals('pending_insert') |
+                        tbl.syncStatus.equals('pending_update') |
+                        tbl.syncStatus.equals('pending_delete') |
+                        tbl.syncStatus.equals('sync_error')),
+              ))
+              .get();
+
+      final now = DateTime.now();
+      final pending = <LocalFamilyProfilesTableData>[];
+      for (final row in candidates) {
+        if (row.syncStatus != 'sync_error') {
+          pending.add(row);
+          continue;
+        }
+        final retry = await _readRetry('family_profiles', row.id);
+        if (!retry.fatal &&
+            (retry.nextRetry == null || !retry.nextRetry!.isAfter(now))) {
+          pending.add(row);
+        }
+      }
+      if (pending.isEmpty) return 0;
+
+      var syncedCount = 0;
+      for (final row in pending) {
+        try {
+          if (row.isDeleted) {
+            await supabase.from('health_profiles').delete().eq('id', row.id);
+          } else {
+            await supabase.from('health_profiles').upsert({
+              'id': row.id,
+              'owner_account_id': row.ownerAccountId,
+              'is_self': false,
+              'display_name': row.displayName,
+              if (row.relationshipLabel != null)
+                'relationship_label': row.relationshipLabel,
+              'is_managed': row.isManaged,
+              if (row.dateOfBirth != null)
+                'date_of_birth': row.dateOfBirth!
+                    .toIso8601String()
+                    .split('T')
+                    .first,
+              if (row.sex != null) 'sex': row.sex,
+              if (row.heightCm != null) 'height_cm': row.heightCm,
+              if (row.weightKg != null) 'weight_kg': row.weightKg,
+            }, onConflict: 'id');
+          }
+          await (db.update(
+            db.localFamilyProfilesTable,
+          )..where((tbl) => tbl.id.equals(row.id))).write(
+            const LocalFamilyProfilesTableCompanion(
+              syncStatus: Value('synced'),
+            ),
+          );
+          await _clearRetry('family_profiles', row.id);
+          await _drainOutboxFor('health_profile', row.id);
+          syncedCount++;
+        } catch (e) {
+          await _recordPushFailure(
+            'family_profiles',
+            row.id,
+            e,
+            () =>
+                (db.update(
+                  db.localFamilyProfilesTable,
+                )..where((tbl) => tbl.id.equals(row.id))).write(
+                  const LocalFamilyProfilesTableCompanion(
+                    syncStatus: Value('sync_error'),
+                  ),
+                ),
+          );
+        }
+      }
+      return syncedCount;
+    });
+  }
+
+  /// Pulls every visible non-self profile (owned family + profiles shared
+  /// with me; RLS already scopes visibility) plus their access grants.
+  /// Grants are a read-only mirror — mutations go through the RPCs.
+  Future<int> pullFamilySharing() async {
+    var pulled = 0;
+
+    final profiles = await supabase
+        .from('health_profiles')
+        .select()
+        .eq('is_self', false)
+        .order('updated_at', ascending: true)
+        .limit(200);
+    for (final json in profiles as List) {
+      final map = json as Map<String, dynamic>;
+      final updatedAt = DateTime.parse(map['updated_at'] as String);
+      await db
+          .into(db.localFamilyProfilesTable)
+          .insertOnConflictUpdate(
+            LocalFamilyProfilesTableCompanion(
+              id: Value(map['id'] as String),
+              ownerAccountId: Value(map['owner_account_id'] as String),
+              isSelf: Value(map['is_self'] as bool? ?? false),
+              displayName: Value(map['display_name'] as String? ?? ''),
+              relationshipLabel: Value(map['relationship_label'] as String?),
+              isManaged: Value(map['is_managed'] as bool? ?? true),
+              dateOfBirth: Value(
+                map['date_of_birth'] != null
+                    ? DateTime.parse(map['date_of_birth'] as String)
+                    : null,
+              ),
+              sex: Value(map['sex'] as String?),
+              heightCm: Value((map['height_cm'] as num?)?.toDouble()),
+              weightKg: Value((map['weight_kg'] as num?)?.toDouble()),
+              isDeleted: const Value(false),
+              syncStatus: const Value('synced'),
+              createdAt: Value(
+                map['created_at'] != null
+                    ? DateTime.parse(map['created_at'] as String)
+                    : updatedAt,
+              ),
+              updatedAt: Value(updatedAt),
+            ),
+          );
+      pulled++;
+    }
+
+    final grants = await supabase
+        .from('profile_access')
+        .select()
+        .order('updated_at', ascending: true)
+        .limit(200);
+    for (final json in grants as List) {
+      final map = json as Map<String, dynamic>;
+      final updatedAt = DateTime.parse(map['updated_at'] as String);
+      await db
+          .into(db.localProfileAccessTable)
+          .insertOnConflictUpdate(
+            LocalProfileAccessTableCompanion(
+              id: Value(map['id'] as String),
+              profileId: Value(map['profile_id'] as String),
+              granteeAccountId: Value(map['grantee_account_id'] as String),
+              role: Value(map['role'] as String),
+              status: Value(map['status'] as String),
+              grantedBy: Value(map['granted_by'] as String?),
+              syncStatus: const Value('synced'),
+              createdAt: Value(
+                map['created_at'] != null
+                    ? DateTime.parse(map['created_at'] as String)
+                    : updatedAt,
+              ),
+              updatedAt: Value(updatedAt),
+            ),
+          );
+      pulled++;
+    }
+    return pulled;
+  }
+
   Future<int> _pullMedicationRows(String profileId) async {
     const pageSize = 200;
     const metaKeyPrefix = 'last_sync_meds_';

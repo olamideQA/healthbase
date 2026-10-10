@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:healthbase/core/db/app_database.dart';
+import 'package:healthbase/core/errors/failures.dart';
 import 'package:healthbase/features/family/data/family_repository.dart';
 import 'package:healthbase/features/family/domain/models/family_profile.dart';
 import 'package:mocktail/mocktail.dart';
@@ -97,14 +98,31 @@ void main() {
       expect(outbox.any((entry) => entry.action == 'delete' && entry.entityId == id), isTrue);
     });
 
-    test('createInvite generates fallback 8-character uppercase code when offline', () async {
-      final code = await repository.createInvite(
-        profileId: 'prof-123',
-        role: AccessRole.view,
+    test('createInvite requires connectivity (never fabricates codes)',
+        () async {
+      // The RPC mock is unstubbed, simulating offline: no fake code may
+      // ever be returned, since fabricated codes are always rejected.
+      expect(
+        () => repository.createInvite(
+          profileId: 'prof-123',
+          role: AccessRole.view,
+        ),
+        throwsA(isA<NetworkFailure>()),
       );
+    });
 
-      expect(code.length, 8);
-      expect(code, code.toUpperCase());
+    test('acceptInvite accepts 8 or 32 char codes, rejects the rest',
+        () async {
+      expect(
+        () => repository.acceptInvite('ABC123'),
+        throwsA(isA<ValidationFailure>()),
+      );
+      // 32-char codes pass validation and reach the network layer
+      // (unstubbed RPC mock throws UnexpectedFailure here).
+      expect(
+        () => repository.acceptInvite('A' * 32),
+        throwsA(isA<UnexpectedFailure>()),
+      );
     });
   });
 }

@@ -509,4 +509,119 @@ void main() {
       expect(row.syncStatus, 'synced');
     });
   });
+
+  group('SyncEngine family sharing sync', () {
+    late MockSupabaseQueryBuilder mockProfilesBuilder;
+    late MockSupabaseQueryBuilder mockAccessBuilder;
+
+    setUp(() {
+      mockProfilesBuilder = MockSupabaseQueryBuilder();
+      mockAccessBuilder = MockSupabaseQueryBuilder();
+      when(() => mockSupabase.from('health_profiles'))
+          .thenAnswer((_) => mockProfilesBuilder);
+      when(() => mockSupabase.from('profile_access'))
+          .thenAnswer((_) => mockAccessBuilder);
+      when(() => mockProfilesBuilder.upsert(any(), onConflict: 'id'))
+          .thenAnswer((_) =>
+              FakePostgrestFilterBuilder<dynamic>(Future.value([])));
+    });
+
+    test('pushes owned family profiles and drains the outbox', () async {
+      await db.into(db.localFamilyProfilesTable).insert(
+            LocalFamilyProfilesTableCompanion.insert(
+              id: 'fam-1',
+              ownerAccountId: 'user_1',
+              isSelf: const drift.Value(false),
+              displayName: 'Mum',
+              relationshipLabel: const drift.Value('Mother'),
+              syncStatus: const drift.Value('pending_insert'),
+            ),
+          );
+      await db.into(db.syncOutboxTable).insert(
+            SyncOutboxTableCompanion.insert(
+              id: 'ob-fam-1',
+              entityType: 'health_profile',
+              entityId: 'fam-1',
+              action: 'create',
+              payloadJson: '{}',
+            ),
+          );
+
+      expect(await syncEngine.pushPendingFamilyProfiles('user_1'), 1);
+
+      final row = await (db.select(db.localFamilyProfilesTable)
+            ..where((tbl) => tbl.id.equals('fam-1')))
+          .getSingle();
+      expect(row.syncStatus, 'synced');
+      final outbox = await db.select(db.syncOutboxTable).get();
+      expect(outbox.where((o) => o.entityId == 'fam-1'), isEmpty);
+      verify(() => mockProfilesBuilder.upsert(any(), onConflict: 'id'))
+          .called(1);
+    });
+
+    test('never pushes self profiles (server owns those)', () async {
+      await db.into(db.localFamilyProfilesTable).insert(
+            LocalFamilyProfilesTableCompanion.insert(
+              id: 'self-1',
+              ownerAccountId: 'user_1',
+              isSelf: const drift.Value(true),
+              displayName: 'Me',
+              syncStatus: const drift.Value('pending_insert'),
+            ),
+          );
+
+      expect(await syncEngine.pushPendingFamilyProfiles('user_1'), 0);
+      verifyNever(
+          () => mockProfilesBuilder.upsert(any(), onConflict: 'id'));
+    });
+
+    test('pulls shared profiles and access grants', () async {
+      final now = DateTime.now().toUtc();
+      when(() => mockProfilesBuilder.select()).thenAnswer(
+        (_) => FakeSelectChain([
+          {
+            'id': 'fam-shared-1',
+            'owner_account_id': 'user_2',
+            'is_self': false,
+            'display_name': 'Dad',
+            'relationship_label': 'Father',
+            'is_managed': true,
+            'date_of_birth': null,
+            'sex': null,
+            'height_cm': null,
+            'weight_kg': null,
+            'created_at': now.toIso8601String(),
+            'updated_at': now.toIso8601String(),
+          },
+        ]),
+      );
+      when(() => mockAccessBuilder.select()).thenAnswer(
+        (_) => FakeSelectChain([
+          {
+            'id': 'grant-1',
+            'profile_id': 'fam-shared-1',
+            'grantee_account_id': 'user_1',
+            'role': 'view',
+            'status': 'active',
+            'granted_by': 'user_2',
+            'created_at': now.toIso8601String(),
+            'updated_at': now.toIso8601String(),
+          },
+        ]),
+      );
+
+      expect(await syncEngine.pullFamilySharing(), 2);
+
+      final profile = await (db.select(db.localFamilyProfilesTable)
+            ..where((tbl) => tbl.id.equals('fam-shared-1')))
+          .getSingle();
+      expect(profile.displayName, 'Dad');
+      expect(profile.syncStatus, 'synced');
+      final grant = await (db.select(db.localProfileAccessTable)
+            ..where((tbl) => tbl.id.equals('grant-1')))
+          .getSingle();
+      expect(grant.role, 'view');
+      expect(grant.status, 'active');
+    });
+  });
 }

@@ -5,14 +5,19 @@ import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:uuid/uuid.dart';
 import '../../../../core/db/app_database.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../../core/security/security_service.dart';
+import '../../../../core/sync/sync_engine.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/models/health_profile.dart';
 import '../domain/models/family_profile.dart';
 
 final familyRepositoryProvider = Provider<FamilyRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  return FamilyRepository(db: db, client: sb.Supabase.instance.client);
+  final syncEngine = ref.watch(syncEngineProvider);
+  return FamilyRepository(
+    db: db,
+    client: sb.Supabase.instance.client,
+    syncEngine: syncEngine,
+  );
 });
 
 /// Tracks the ID of the currently selected health profile (null = self / primary).
@@ -65,11 +70,23 @@ class FamilyRepository {
   FamilyRepository({
     required this.db,
     required this.client,
+    this._syncEngine,
   });
 
   final AppDatabase db;
   final sb.SupabaseClient client;
+  final SyncEngine? _syncEngine;
   static const _uuid = Uuid();
+
+  /// Best-effort sync trigger after local writes. Failures are durable
+  /// (sync_error + backoff) and retried on the next cycle.
+  void _triggerFamilySync(String ownerAccountId) {
+    final engine = _syncEngine;
+    if (engine == null) return;
+    engine.pushPendingFamilyProfiles(ownerAccountId).then((_) {
+      engine.pullFamilySharing().ignore();
+    }).ignore();
+  }
 
   /// Watch family profiles from local SQLite database.
   Stream<List<FamilyProfile>> watchFamilyProfiles() {
@@ -78,7 +95,8 @@ class FamilyRepository {
       ..where((tbl) => tbl.isDeleted.equals(false))
       ..orderBy([
         (tbl) => OrderingTerm(expression: tbl.isSelf, mode: OrderingMode.desc),
-        (tbl) => OrderingTerm(expression: tbl.createdAt, mode: OrderingMode.asc),
+        (tbl) =>
+            OrderingTerm(expression: tbl.createdAt, mode: OrderingMode.asc),
       ]);
 
     return query.watch().map((rows) {
@@ -93,7 +111,8 @@ class FamilyRepository {
       ..where((tbl) => tbl.isDeleted.equals(false))
       ..orderBy([
         (tbl) => OrderingTerm(expression: tbl.isSelf, mode: OrderingMode.desc),
-        (tbl) => OrderingTerm(expression: tbl.createdAt, mode: OrderingMode.asc),
+        (tbl) =>
+            OrderingTerm(expression: tbl.createdAt, mode: OrderingMode.asc),
       ]);
 
     final rows = await query.get();
@@ -122,7 +141,9 @@ class FamilyRepository {
     final now = DateTime.now();
 
     // 1. Insert into local SQLite table
-    await db.into(db.localFamilyProfilesTable).insert(
+    await db
+        .into(db.localFamilyProfilesTable)
+        .insert(
           LocalFamilyProfilesTableCompanion.insert(
             id: id,
             ownerAccountId: uid,
@@ -142,7 +163,9 @@ class FamilyRepository {
         );
 
     // 2. Queue into sync outbox
-    await db.into(db.syncOutboxTable).insert(
+    await db
+        .into(db.syncOutboxTable)
+        .insert(
           SyncOutboxTableCompanion.insert(
             id: _uuid.v4(),
             entityType: 'health_profile',
@@ -163,30 +186,10 @@ class FamilyRepository {
           ),
         );
 
-    // 3. Attempt direct Supabase insert if online
-    try {
-      await client.from('health_profiles').insert({
-        'id': id,
-        'owner_account_id': uid,
-        'is_self': false,
-        'display_name': displayName.trim(),
-        'relationship_label': relationshipLabel?.trim(),
-        'is_managed': true,
-        if (dateOfBirth != null)
-          'date_of_birth': dateOfBirth.toIso8601String().split('T').first,
-        if (sex != null) 'sex': sex.toDbValue(),
-        if (heightCm != null) 'height_cm': heightCm,
-        if (weightKg != null) 'weight_kg': weightKg,
-      });
-
-      await (db.update(db.localFamilyProfilesTable)..where((tbl) => tbl.id.equals(id))).write(
-        const LocalFamilyProfilesTableCompanion(
-          syncStatus: Value('synced'),
-        ),
-      );
-    } catch (e) {
-      AppLogger.warning('Offline: Family profile queued in outbox: $e');
-    }
+    // 3. The sync engine owns the upload (works offline, retries with
+    // backoff). A single path avoids races between direct writes and
+    // queued rows.
+    _triggerFamilySync(uid);
 
     return id;
   }
@@ -215,17 +218,25 @@ class FamilyRepository {
       }
       throw DatabaseFailure(message: e.message, cause: e);
     } catch (e) {
-      // Local fallback token for offline / testing
-      final code = _uuid.v4().replaceAll('-', '').substring(0, 8).toUpperCase();
-      return code;
+      if (e is Failure) rethrow;
+      // Invites are minted server-side and cannot be created offline.
+      // Never fabricate a code: it would always be rejected on accept.
+      throw NetworkFailure(
+        message:
+            'Creating invites needs an internet connection. Your profile is saved and will sync automatically.',
+        cause: e,
+      );
     }
   }
 
-  /// Accept an invitation using an 8-character invite code.
+  /// Accept an invitation using an invite code (legacy 8-char or current
+  /// 32-char codes are both accepted).
   Future<Map<String, dynamic>> acceptInvite(String inviteCode) async {
     final code = inviteCode.trim().toUpperCase();
-    if (code.length != 8) {
-      throw const ValidationFailure(message: 'Invite code must be exactly 8 characters.');
+    if (code.length != 8 && code.length != 32) {
+      throw const ValidationFailure(
+        message: 'Invite code must be 8 or 32 characters.',
+      );
     }
 
     try {
@@ -233,16 +244,22 @@ class FamilyRepository {
         'accept_profile_invite',
         params: {'p_invite_code': code},
       );
+      // Refresh the local mirror so the newly shared profile appears.
+      _syncEngine?.pullFamilySharing().ignore();
       return Map<String, dynamic>.from(res as Map);
     } on sb.PostgrestException catch (e) {
       if (e.message.contains('already been used')) {
-        throw const ValidationFailure(message: 'This invite code has already been used.');
+        throw const ValidationFailure(
+          message: 'This invite code has already been used.',
+        );
       }
       if (e.message.contains('expired')) {
         throw const ValidationFailure(message: 'This invite code has expired.');
       }
       if (e.message.contains('Invalid invite code')) {
-        throw const ValidationFailure(message: 'Invalid invite code. Please check and retry.');
+        throw const ValidationFailure(
+          message: 'Invalid invite code. Please check and retry.',
+        );
       }
       throw DatabaseFailure(message: e.message, cause: e);
     } catch (e) {
@@ -259,15 +276,16 @@ class FamilyRepository {
         params: {'p_access_id': accessId},
       );
 
-      await (db.update(db.localProfileAccessTable)..where((tbl) => tbl.id.equals(accessId))).write(
-        const LocalProfileAccessTableCompanion(
-          status: Value('revoked'),
-        ),
+      await (db.update(
+        db.localProfileAccessTable,
+      )..where((tbl) => tbl.id.equals(accessId))).write(
+        const LocalProfileAccessTableCompanion(status: Value('revoked')),
       );
     } on sb.PostgrestException catch (e) {
       if (e.message.contains('Only the profile owner')) {
         throw const SecurityFailure(
-          message: 'Permission denied: Only the profile owner can revoke access.',
+          message:
+              'Permission denied: Only the profile owner can revoke access.',
         );
       }
       throw DatabaseFailure(message: e.message, cause: e);
@@ -277,9 +295,15 @@ class FamilyRepository {
     }
   }
 
-  /// Soft-delete a managed family member profile.
+  /// Soft-delete a managed family member profile. The tombstone uploads
+  /// on the next sync; the sync engine owns the remote delete.
   Future<void> removeFamilyMember(String profileId) async {
-    await (db.update(db.localFamilyProfilesTable)..where((tbl) => tbl.id.equals(profileId))).write(
+    final row = await (db.select(
+      db.localFamilyProfilesTable,
+    )..where((tbl) => tbl.id.equals(profileId))).getSingleOrNull();
+    await (db.update(
+      db.localFamilyProfilesTable,
+    )..where((tbl) => tbl.id.equals(profileId))).write(
       LocalFamilyProfilesTableCompanion(
         isDeleted: const Value(true),
         syncStatus: const Value('pending_delete'),
@@ -287,7 +311,9 @@ class FamilyRepository {
       ),
     );
 
-    await db.into(db.syncOutboxTable).insert(
+    await db
+        .into(db.syncOutboxTable)
+        .insert(
           SyncOutboxTableCompanion.insert(
             id: _uuid.v4(),
             entityType: 'health_profile',
@@ -297,14 +323,14 @@ class FamilyRepository {
           ),
         );
 
-    try {
-      await client.from('health_profiles').delete().eq('id', profileId);
-    } catch (e) {
-      AppLogger.warning('Offline: Profile deletion queued in outbox: $e');
-    }
+    final owner = row?.ownerAccountId ?? client.auth.currentUser?.id;
+    if (owner != null) _triggerFamilySync(owner);
   }
 
-  FamilyProfile _mapRowToFamilyProfile(LocalFamilyProfilesTableData r, String currentUserId) {
+  FamilyProfile _mapRowToFamilyProfile(
+    LocalFamilyProfilesTableData r,
+    String currentUserId,
+  ) {
     final isOwner = r.ownerAccountId == currentUserId;
     return FamilyProfile(
       id: r.id,
