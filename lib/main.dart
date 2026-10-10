@@ -14,10 +14,24 @@ import 'features/profile/data/profile_repository.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authRepo = ref.watch(authRepositoryProvider);
-  return createAppRouter(
+  final router = createAppRouter(
     authRepository: authRepo,
     isOnboardingCompleted: () => ref.read(myProfileProvider).value?.isOnboardingCompleted,
   );
+  // Password-reset links open the app via the auth-callback scheme: when
+  // Supabase reports a recovery session, land on the reset screen.
+  // Guarded for tests, where Supabase is never initialized.
+  try {
+    final sub = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (data.event == AuthChangeEvent.passwordRecovery) {
+        router.go(AppRoutes.resetPassword);
+      }
+    });
+    ref.onDispose(sub.cancel);
+  } catch (_) {
+    // No Supabase in widget tests — routing still works.
+  }
+  return router;
 });
 
 Future<void> main() async {
