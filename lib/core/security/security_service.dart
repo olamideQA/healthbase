@@ -1,5 +1,13 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+/// Global access to [SecurityService] (Keystore / Keychain backed).
+final securityServiceProvider = Provider<SecurityService>((ref) {
+  return SecurityService();
+});
 
 /// Secure storage service for holding encryption keys and session credentials.
 class SecurityService {
@@ -26,6 +34,22 @@ class SecurityService {
 
   Future<void> deleteAll() async {
     await _storage.deleteAll();
+  }
+
+  /// Returns the 256-bit database passphrase (hex), creating and storing it
+  /// on first use. The key never leaves secure storage except into the
+  /// SQLCipher `PRAGMA key` call, and is destroyed by [deleteAll].
+  static const String dbKeyStorageKey = 'hb_db_encryption_key';
+
+  Future<String> getOrCreateDatabaseKey() async {
+    final existing = await read(dbKeyStorageKey);
+    if (existing != null && existing.isNotEmpty) return existing;
+    final random = Random.secure();
+    final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+    final hex =
+        bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    await write(dbKeyStorageKey, hex);
+    return hex;
   }
 }
 

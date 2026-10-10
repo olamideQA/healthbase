@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/config/app_config.dart';
+import 'core/db/app_database.dart';
+import 'core/db/encrypted_database.dart';
 import 'core/routing/app_router.dart';
 import 'core/security/security_service.dart';
 import 'core/theme/app_theme.dart';
@@ -20,6 +22,10 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Open the encrypted local database before anything can use it.
+  final security = SecurityService();
+  final db = await openEncryptedAppDatabase(security);
 
   // Initialize Supabase client with production config
   if (AppConfig.isConfigured) {
@@ -38,8 +44,12 @@ Future<void> main() async {
   }
 
   runApp(
-    const ProviderScope(
-      child: HealthBaseApp(),
+    ProviderScope(
+      overrides: [
+        appDatabaseProvider.overrideWithValue(db),
+        securityServiceProvider.overrideWithValue(security),
+      ],
+      child: const HealthBaseApp(),
     ),
   );
 }

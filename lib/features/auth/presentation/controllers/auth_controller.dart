@@ -1,18 +1,27 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/db/app_database.dart';
+import '../../../../core/db/encrypted_database.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../../core/security/security_service.dart';
 import '../../data/auth_repository.dart';
 import '../../domain/models/auth_user.dart';
 
 final authControllerProvider =
     StateNotifierProvider<AuthController, AsyncValue<AuthUser?>>((ref) {
   final repo = ref.watch(authRepositoryProvider);
-  return AuthController(repo);
+  Future<void> wipe() => wipeLocalData(
+        db: ref.read(appDatabaseProvider),
+        security: ref.read(securityServiceProvider),
+      );
+  return AuthController(repo, onSignOutCleanup: wipe);
 });
 
 class AuthController extends StateNotifier<AsyncValue<AuthUser?>> {
-  AuthController(this._repo) : super(AsyncValue.data(_repo.currentUser));
+  AuthController(this._repo, {this._onSignOutCleanup})
+      : super(AsyncValue.data(_repo.currentUser));
 
   final AuthRepository _repo;
+  final Future<void> Function()? _onSignOutCleanup;
 
   Future<bool> signIn({
     required String email,
@@ -88,9 +97,12 @@ class AuthController extends StateNotifier<AsyncValue<AuthUser?>> {
     }
   }
 
+  /// Signs out and wipes all local health data first, so nothing survives
+  /// the session on this device.
   Future<void> signOut() async {
     state = const AsyncValue.loading();
     try {
+      await _onSignOutCleanup?.call();
       await _repo.signOut();
       state = const AsyncValue.data(null);
     } on Failure catch (f, st) {
@@ -100,10 +112,14 @@ class AuthController extends StateNotifier<AsyncValue<AuthUser?>> {
     }
   }
 
+  /// Deletes the server account, then wipes local data. Local wipe runs
+  /// only after the server confirms, so an offline failure keeps the
+  /// account (and its data) intact for retry.
   Future<bool> deleteAccount() async {
     state = const AsyncValue.loading();
     try {
       await _repo.deleteAccount();
+      await _onSignOutCleanup?.call();
       state = const AsyncValue.data(null);
       return true;
     } on Failure catch (f, st) {

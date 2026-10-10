@@ -242,8 +242,12 @@ class AppDatabase extends _$AppDatabase {
       );
 }
 
+/// Shared app database. Must be overridden in `main()` with the encrypted
+/// instance from [openEncryptedAppDatabase] — see `encrypted_database.dart`.
+/// Throws if accessed without the override so a plaintext database can
+/// never be opened by accident.
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
-  final db = AppDatabase();
-  ref.onDispose(() => db.close());
-  return db;
+  throw StateError(
+    'appDatabaseProvider must be overridden in main() with an encrypted database.',
+  );
 });
