@@ -67,9 +67,7 @@ class SyncEngine {
   }) async {
     final shift = attempts.clamp(0, 5);
     final delaySeconds = min(30 * (1 << shift), _maxBackoffSeconds);
-    final nextRetry = DateTime.now().add(
-      Duration(seconds: delaySeconds),
-    );
+    final nextRetry = DateTime.now().add(Duration(seconds: delaySeconds));
     await db
         .into(db.localAppMetadataTable)
         .insertOnConflictUpdate(
@@ -102,16 +100,18 @@ class SyncEngine {
   }
 
   /// Perform a full push and incremental pull sync for a profile.
-  /// Daily checks are pushed before measurements so the remote
-  /// `measurements.daily_check_id` foreign key never dangles.
+  /// Parents are pushed before children (daily checks before measurements,
+  /// medications before their events) so remote foreign keys never dangle.
   Future<void> syncProfile(String profileId) async {
     if (_isSyncing) return;
     _isSyncing = true;
     try {
       await pushPendingDailyChecks(profileId);
       await pushPendingMeasurements(profileId);
+      await pushPendingMedications(profileId);
       await pullRemoteDailyChecks(profileId);
       await pullRemoteMeasurements(profileId);
+      await pullRemoteMedications(profileId);
     } catch (e) {
       AppLogger.warning('Sync cycle encountered error for profile: $e');
     } finally {
@@ -500,6 +500,368 @@ class SyncEngine {
           );
     }
 
+    return pulledCount;
+  }
+
+  /// Push all local medications (then their adherence events) marked
+  /// pending, with the same backoff/permanent-failure handling as the
+  /// other tables. Successful uploads also delete matching dead outbox
+  /// entries written before the drain existed.
+  Future<int> pushPendingMedications(String profileId) {
+    return _serializedPush(profileId, () async {
+      var synced = 0;
+      synced += await _pushMedicationRows(profileId);
+      synced += await _pushMedicationEventRows(profileId);
+      return synced;
+    });
+  }
+
+  Future<int> _pushMedicationRows(String profileId) async {
+    final candidates =
+        await (db.select(db.localMedicationsTable)..where(
+              (tbl) =>
+                  tbl.profileId.equals(profileId) &
+                  (tbl.syncStatus.equals('pending_insert') |
+                      tbl.syncStatus.equals('pending_update') |
+                      tbl.syncStatus.equals('pending_delete') |
+                      tbl.syncStatus.equals('sync_error')),
+            ))
+            .get();
+
+    final now = DateTime.now();
+    final pending = <LocalMedicationsTableData>[];
+    for (final row in candidates) {
+      if (row.syncStatus != 'sync_error') {
+        pending.add(row);
+        continue;
+      }
+      final retry = await _readRetry('medications', row.id);
+      if (!retry.fatal &&
+          (retry.nextRetry == null || !retry.nextRetry!.isAfter(now))) {
+        pending.add(row);
+      }
+    }
+    if (pending.isEmpty) return 0;
+
+    var syncedCount = 0;
+    for (final row in pending) {
+      try {
+        if (row.isDeleted) {
+          await supabase.from('medications').delete().eq('id', row.id);
+        } else {
+          await supabase.from('medications').upsert({
+            'id': row.id,
+            'profile_id': row.profileId,
+            'name': row.name,
+            'dosage': row.dosage,
+            'frequency': row.frequency,
+            'start_date': _iso(row.startDate),
+            if (row.endDate != null) 'end_date': _iso(row.endDate!),
+            if (row.reminderTime != null) 'reminder_time': row.reminderTime,
+            if (row.notes != null) 'notes': row.notes,
+            'is_active': row.isActive,
+            'is_deleted': false,
+          }, onConflict: 'id');
+        }
+        await _markMedicationRowSynced(row.id);
+        syncedCount++;
+      } catch (e) {
+        await _recordPushFailure(
+          'medications',
+          row.id,
+          e,
+          () =>
+              (db.update(
+                db.localMedicationsTable,
+              )..where((tbl) => tbl.id.equals(row.id))).write(
+                const LocalMedicationsTableCompanion(
+                  syncStatus: Value('sync_error'),
+                ),
+              ),
+        );
+      }
+    }
+    return syncedCount;
+  }
+
+  Future<int> _pushMedicationEventRows(String profileId) async {
+    final candidates =
+        await (db.select(db.localMedicationEventsTable)..where(
+              (tbl) =>
+                  tbl.profileId.equals(profileId) &
+                  (tbl.syncStatus.equals('pending_insert') |
+                      tbl.syncStatus.equals('pending_update') |
+                      tbl.syncStatus.equals('pending_delete') |
+                      tbl.syncStatus.equals('sync_error')),
+            ))
+            .get();
+
+    final now = DateTime.now();
+    final pending = <LocalMedicationEventsTableData>[];
+    for (final row in candidates) {
+      if (row.syncStatus != 'sync_error') {
+        pending.add(row);
+        continue;
+      }
+      final retry = await _readRetry('medication_events', row.id);
+      if (!retry.fatal &&
+          (retry.nextRetry == null || !retry.nextRetry!.isAfter(now))) {
+        pending.add(row);
+      }
+    }
+    if (pending.isEmpty) return 0;
+
+    var syncedCount = 0;
+    for (final row in pending) {
+      try {
+        if (row.isDeleted) {
+          await supabase.from('medication_events').delete().eq('id', row.id);
+        } else {
+          await supabase.from('medication_events').upsert({
+            'id': row.id,
+            'profile_id': row.profileId,
+            'medication_id': row.medicationId,
+            'scheduled_time': _iso(row.scheduledTime),
+            if (row.recordedAt != null) 'recorded_at': _iso(row.recordedAt!),
+            'status': row.status,
+            if (row.notes != null) 'notes': row.notes,
+            'is_deleted': false,
+          }, onConflict: 'id');
+        }
+        await (db.update(
+          db.localMedicationEventsTable,
+        )..where((tbl) => tbl.id.equals(row.id))).write(
+          const LocalMedicationEventsTableCompanion(
+            syncStatus: Value('synced'),
+          ),
+        );
+        await _clearRetry('medication_events', row.id);
+        await _drainOutboxFor('medication_event', row.id);
+        syncedCount++;
+      } catch (e) {
+        await _recordPushFailure(
+          'medication_events',
+          row.id,
+          e,
+          () =>
+              (db.update(
+                db.localMedicationEventsTable,
+              )..where((tbl) => tbl.id.equals(row.id))).write(
+                const LocalMedicationEventsTableCompanion(
+                  syncStatus: Value('sync_error'),
+                ),
+              ),
+        );
+      }
+    }
+    return syncedCount;
+  }
+
+  Future<void> _markMedicationRowSynced(String rowId) async {
+    await (db.update(
+      db.localMedicationsTable,
+    )..where((tbl) => tbl.id.equals(rowId))).write(
+      const LocalMedicationsTableCompanion(syncStatus: Value('synced')),
+    );
+    await _clearRetry('medications', rowId);
+    await _drainOutboxFor('medication', rowId);
+  }
+
+  /// Shared failure handling: classify the error, schedule backoff, then
+  /// run the caller-supplied status write (each table has its own type).
+  Future<void> _recordPushFailure(
+    String retryTable,
+    String rowId,
+    Object e,
+    Future<void> Function() markSyncError,
+  ) async {
+    final fatal = _isFatalSyncError(e);
+    final previous = await _readRetry(retryTable, rowId);
+    await _writeRetry(
+      retryTable,
+      rowId,
+      attempts: previous.attempts + 1,
+      fatal: fatal,
+    );
+    AppLogger.warning(
+      'Failed to push $retryTable $rowId '
+      '(attempt ${previous.attempts + 1}${fatal ? ', permanent' : ', will retry'}): $e',
+    );
+    await markSyncError();
+  }
+
+  /// Deletes dead outbox entries for an entity once its source row is
+  /// confirmed uploaded (the outbox has no drain worker; writers still
+  /// append to it).
+  Future<void> _drainOutboxFor(String entityType, String entityId) async {
+    await (db.delete(db.syncOutboxTable)..where(
+          (tbl) =>
+              tbl.entityType.equals(entityType) & tbl.entityId.equals(entityId),
+        ))
+        .go();
+  }
+
+  String _iso(DateTime dt) => dt.toUtc().toIso8601String();
+
+  /// Pulls remote medications + events updated since the last cursor.
+  Future<int> pullRemoteMedications(String profileId) async {
+    var pulled = 0;
+    pulled += await _pullMedicationRows(profileId);
+    pulled += await _pullMedicationEventRows(profileId);
+    return pulled;
+  }
+
+  Future<int> _pullMedicationRows(String profileId) async {
+    const pageSize = 200;
+    const metaKeyPrefix = 'last_sync_meds_';
+    final metaKey = '$metaKeyPrefix$profileId';
+    final lastSyncRow = await (db.select(
+      db.localAppMetadataTable,
+    )..where((tbl) => tbl.key.equals(metaKey))).getSingleOrNull();
+    final lastSyncTime = lastSyncRow != null
+        ? DateTime.tryParse(lastSyncRow.value)?.toUtc().toIso8601String()
+        : null;
+
+    var query = supabase
+        .from('medications')
+        .select()
+        .eq('profile_id', profileId);
+    if (lastSyncTime != null) {
+      query = query.gt('updated_at', lastSyncTime);
+    }
+    final remoteRows = await query
+        .order('updated_at', ascending: true)
+        .limit(pageSize);
+
+    DateTime? latestUpdated;
+    var pulledCount = 0;
+    for (final json in remoteRows as List) {
+      final map = json as Map<String, dynamic>;
+      final updatedAt = DateTime.parse(map['updated_at'] as String);
+      if (latestUpdated == null || updatedAt.isAfter(latestUpdated)) {
+        latestUpdated = updatedAt;
+      }
+      await db
+          .into(db.localMedicationsTable)
+          .insertOnConflictUpdate(
+            LocalMedicationsTableCompanion(
+              id: Value(map['id'] as String),
+              profileId: Value(map['profile_id'] as String),
+              name: Value(map['name'] as String? ?? ''),
+              dosage: Value(map['dosage'] as String? ?? ''),
+              frequency: Value(map['frequency'] as String? ?? 'daily'),
+              // Remote start_date is NOT NULL; fall back to updatedAt so one
+              // malformed row cannot abort the whole pull.
+              startDate: Value(
+                map['start_date'] != null
+                    ? DateTime.parse(map['start_date'] as String)
+                    : updatedAt,
+              ),
+              endDate: Value(
+                map['end_date'] != null
+                    ? DateTime.parse(map['end_date'] as String)
+                    : null,
+              ),
+              reminderTime: Value(map['reminder_time'] as String?),
+              notes: Value(map['notes'] as String?),
+              isActive: Value(map['is_active'] as bool? ?? true),
+              isDeleted: Value(map['is_deleted'] as bool? ?? false),
+              syncStatus: const Value('synced'),
+              version: Value(map['version'] as int? ?? 1),
+              createdAt: Value(
+                map['created_at'] != null
+                    ? DateTime.parse(map['created_at'] as String)
+                    : updatedAt,
+              ),
+              updatedAt: Value(updatedAt),
+            ),
+          );
+      pulledCount++;
+    }
+    if (latestUpdated != null) {
+      await db
+          .into(db.localAppMetadataTable)
+          .insertOnConflictUpdate(
+            LocalAppMetadataTableCompanion(
+              key: Value(metaKey),
+              value: Value(latestUpdated.toIso8601String()),
+              updatedAt: Value(DateTime.now()),
+            ),
+          );
+    }
+    return pulledCount;
+  }
+
+  Future<int> _pullMedicationEventRows(String profileId) async {
+    const pageSize = 200;
+    final metaKey = 'last_sync_medevents_$profileId';
+    final lastSyncRow = await (db.select(
+      db.localAppMetadataTable,
+    )..where((tbl) => tbl.key.equals(metaKey))).getSingleOrNull();
+    final lastSyncTime = lastSyncRow != null
+        ? DateTime.tryParse(lastSyncRow.value)?.toUtc().toIso8601String()
+        : null;
+
+    var query = supabase
+        .from('medication_events')
+        .select()
+        .eq('profile_id', profileId);
+    if (lastSyncTime != null) {
+      query = query.gt('updated_at', lastSyncTime);
+    }
+    final remoteRows = await query
+        .order('updated_at', ascending: true)
+        .limit(pageSize);
+
+    DateTime? latestUpdated;
+    var pulledCount = 0;
+    for (final json in remoteRows as List) {
+      final map = json as Map<String, dynamic>;
+      final updatedAt = DateTime.parse(map['updated_at'] as String);
+      if (latestUpdated == null || updatedAt.isAfter(latestUpdated)) {
+        latestUpdated = updatedAt;
+      }
+      await db
+          .into(db.localMedicationEventsTable)
+          .insertOnConflictUpdate(
+            LocalMedicationEventsTableCompanion(
+              id: Value(map['id'] as String),
+              profileId: Value(map['profile_id'] as String),
+              medicationId: Value(map['medication_id'] as String),
+              scheduledTime: Value(
+                DateTime.parse(map['scheduled_time'] as String),
+              ),
+              recordedAt: Value(
+                map['recorded_at'] != null
+                    ? DateTime.parse(map['recorded_at'] as String)
+                    : null,
+              ),
+              status: Value(map['status'] as String? ?? 'not_recorded'),
+              notes: Value(map['notes'] as String?),
+              isDeleted: Value(map['is_deleted'] as bool? ?? false),
+              syncStatus: const Value('synced'),
+              version: Value(map['version'] as int? ?? 1),
+              createdAt: Value(
+                map['created_at'] != null
+                    ? DateTime.parse(map['created_at'] as String)
+                    : updatedAt,
+              ),
+              updatedAt: Value(updatedAt),
+            ),
+          );
+      pulledCount++;
+    }
+    if (latestUpdated != null) {
+      await db
+          .into(db.localAppMetadataTable)
+          .insertOnConflictUpdate(
+            LocalAppMetadataTableCompanion(
+              key: Value(metaKey),
+              value: Value(latestUpdated.toIso8601String()),
+              updatedAt: Value(DateTime.now()),
+            ),
+          );
+    }
     return pulledCount;
   }
 }

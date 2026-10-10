@@ -3,12 +3,14 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/db/app_database.dart';
+import '../../../../core/sync/sync_engine.dart';
 import '../../measurements/domain/models/measurement.dart';
 import '../domain/models/medication.dart';
 
 final medicationRepositoryProvider = Provider<MedicationRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  return MedicationRepository(db: db);
+  final syncEngine = ref.watch(syncEngineProvider);
+  return MedicationRepository(db: db, syncEngine: syncEngine);
 });
 
 final activeMedicationsStreamProvider =
@@ -34,10 +36,20 @@ final medicationAdherenceProvider =
 });
 
 class MedicationRepository {
-  MedicationRepository({required this.db});
+  MedicationRepository({required this.db, this._syncEngine});
 
   final AppDatabase db;
+  final SyncEngine? _syncEngine;
   static const _uuid = Uuid();
+
+  /// Best-effort upload trigger after local writes. Failures are durable
+  /// (sync_error + backoff) and retried on the next cycle, so callers
+  /// never block on the network.
+  void _triggerSync(String profileId) {
+    final engine = _syncEngine;
+    if (engine == null) return;
+    engine.syncProfile(profileId).ignore();
+  }
 
   /// Create and persist a new medication.
   Future<String> addMedication({
@@ -72,7 +84,8 @@ class MedicationRepository {
           ),
         );
 
-    // Queue sync action
+    // Queue sync action (drained by SyncEngine once uploaded; the
+    // syncStatus flag is the source of truth for what needs pushing).
     await db.into(db.syncOutboxTable).insert(
           SyncOutboxTableCompanion.insert(
             id: _uuid.v4(),
@@ -95,6 +108,7 @@ class MedicationRepository {
           ),
         );
 
+    _triggerSync(profileId);
     return id;
   }
 
@@ -133,10 +147,19 @@ class MedicationRepository {
             }),
           ),
         );
+
+    _triggerSync(medication.profileId);
   }
 
-  /// Soft-delete a medication.
-  Future<void> deleteMedication(String id) async {
+  /// Soft-delete a medication (tombstone uploads on next sync).
+  Future<void> deleteMedication(String id, {String? profileId}) async {
+    String? ownerProfileId = profileId;
+    if (ownerProfileId == null) {
+      final row = await (db.select(db.localMedicationsTable)
+            ..where((tbl) => tbl.id.equals(id)))
+          .getSingleOrNull();
+      ownerProfileId = row?.profileId;
+    }
     await (db.update(db.localMedicationsTable)..where((tbl) => tbl.id.equals(id))).write(
       LocalMedicationsTableCompanion(
         isDeleted: const Value(true),
@@ -145,6 +168,7 @@ class MedicationRepository {
         updatedAt: Value(DateTime.now()),
       ),
     );
+    if (ownerProfileId != null) _triggerSync(ownerProfileId);
   }
 
   /// Fetch medications for a profile.
@@ -209,6 +233,7 @@ class MedicationRepository {
           ),
         );
 
+    _triggerSync(profileId);
     return id;
   }
 

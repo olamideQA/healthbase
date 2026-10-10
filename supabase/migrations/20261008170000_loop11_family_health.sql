@@ -65,6 +65,9 @@ CREATE POLICY profile_invites_delete ON public.profile_invites
     OR app.can_access_profile(profile_id, 'manage')
   );
 
+-- Deny-by-default first (no anon access, narrow authenticated grants).
+REVOKE ALL ON public.profile_invites FROM anon, authenticated;
+
 GRANT SELECT, DELETE ON public.profile_invites TO authenticated;
 
 -- 4. Enable INSERT and UPDATE on profile_access for authenticated users
@@ -74,15 +77,16 @@ CREATE POLICY profile_access_insert ON public.profile_access
     app.can_access_profile(profile_id, 'manage')
   );
 
+-- NOTE: grantees can NOT update their own grant (that arm would let a
+-- 'view' grantee promote itself to 'manage'). Accept/decline flows go
+-- through the SECURITY DEFINER accept_profile_invite() RPC instead.
 CREATE POLICY profile_access_update ON public.profile_access
   FOR UPDATE TO authenticated
   USING (
     app.can_access_profile(profile_id, 'manage')
-    OR grantee_account_id = (SELECT auth.uid())
   )
   WITH CHECK (
     app.can_access_profile(profile_id, 'manage')
-    OR grantee_account_id = (SELECT auth.uid())
   );
 
 CREATE POLICY profile_access_delete ON public.profile_access
@@ -121,8 +125,9 @@ BEGIN
     RAISE EXCEPTION 'Permission denied: manage permission required to share profile' USING errcode = '42501';
   END IF;
 
-  -- Generate 8-character uppercase alphanumeric invite code
-  v_code := upper(substring(replace(gen_random_uuid()::text, '-', '') FROM 1 FOR 8));
+  -- Generate a 128-bit random invite code (32 hex chars). Short 8-char
+  -- codes are brute-forceable and must not be used.
+  v_code := upper(encode(extensions.gen_random_bytes(16), 'hex'));
 
   INSERT INTO public.profile_invites (
     profile_id,
@@ -176,6 +181,12 @@ BEGIN
 
   IF v_invite.expires_at < now() THEN
     RAISE EXCEPTION 'This invite code has expired.' USING errcode = 'P0001';
+  END IF;
+
+  -- Enforce the invited email when the inviter set one.
+  IF v_invite.invited_email IS NOT NULL
+    AND lower(v_invite.invited_email) <> lower(coalesce(auth.email(), '')) THEN
+    RAISE EXCEPTION 'This invite was sent to a different email address.' USING errcode = '42501';
   END IF;
 
   -- Ensure user is not accepting their own profile invite
