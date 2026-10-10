@@ -71,6 +71,55 @@ void main() {
       verify(() => mockQueryBuilder.upsert(any(), onConflict: 'id')).called(1);
     });
 
+    test('pushPendingDailyChecks pushes checks + symptoms before measurements', () async {
+      await db.into(db.localDailyChecksTable).insert(
+            LocalDailyChecksTableCompanion.insert(
+              id: 'local-check-1',
+              profileId: 'p1',
+              checkDate: DateTime.now(),
+              feeling: 'good',
+              medicationStatus: 'yes',
+              syncStatus: const drift.Value('pending_insert'),
+            ),
+          );
+      await db.into(db.localDailyCheckSymptomsTable).insert(
+            LocalDailyCheckSymptomsTableCompanion.insert(
+              id: 'local-sym-1',
+              dailyCheckId: 'local-check-1',
+              symptomCode: 'headache',
+            ),
+          );
+      await db.into(db.localDailyCheckSymptomsTable).insert(
+            LocalDailyCheckSymptomsTableCompanion.insert(
+              id: 'local-sym-2',
+              dailyCheckId: 'local-check-1',
+              symptomCode: 'other',
+              customDescription: const drift.Value('Mild ear pressure'),
+            ),
+          );
+
+      final mockChecksBuilder = MockSupabaseQueryBuilder();
+      final mockSymptomsBuilder = MockSupabaseQueryBuilder();
+      when(() => mockSupabase.from('daily_checks'))
+          .thenAnswer((_) => mockChecksBuilder);
+      when(() => mockSupabase.from('daily_check_symptoms'))
+          .thenAnswer((_) => mockSymptomsBuilder);
+      when(() => mockChecksBuilder.upsert(any(), onConflict: 'id')).thenAnswer(
+          (_) => FakePostgrestFilterBuilder<dynamic>(Future.value([])));
+      when(() => mockSymptomsBuilder.upsert(any(), onConflict: 'id')).thenAnswer(
+          (_) => FakePostgrestFilterBuilder<dynamic>(Future.value([])));
+
+      final syncedCount = await syncEngine.pushPendingDailyChecks('p1');
+      expect(syncedCount, 1);
+
+      final row = await (db.select(db.localDailyChecksTable)
+            ..where((tbl) => tbl.id.equals('local-check-1')))
+          .getSingle();
+      expect(row.syncStatus, 'synced');
+      verify(() => mockChecksBuilder.upsert(any(), onConflict: 'id')).called(1);
+      verify(() => mockSymptomsBuilder.upsert(any(), onConflict: 'id')).called(2);
+    });
+
     test('pushPendingMeasurements sets sync_error on remote failure without crashing', () async {
       await db.into(db.localMeasurementsTable).insert(
             LocalMeasurementsTableCompanion.insert(

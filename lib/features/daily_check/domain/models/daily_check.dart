@@ -121,6 +121,9 @@ class CheckSymptom {
       displayName: 'Loss of consciousness or fainting',
       isUrgent: true,
     ),
+
+    // Free-text fallback: details captured in customDescription.
+    CheckSymptom(symptomCode: 'other', displayName: 'Other (describe below)'),
   ];
 
   static CheckSymptom? findByCode(String code) {
@@ -218,6 +221,7 @@ class DailyCheckDraft {
     this.weightKg,
     this.glucoseMmolL,
     this.symptomCodes = const [],
+    this.otherSymptomText,
     this.medicationStatus,
     this.notes,
     required this.updatedAt,
@@ -233,6 +237,7 @@ class DailyCheckDraft {
   final double? weightKg;
   final double? glucoseMmolL;
   final List<String> symptomCodes;
+  final String? otherSymptomText;
   final MedicationCheckStatus? medicationStatus;
   final String? notes;
   final DateTime updatedAt;
@@ -254,6 +259,8 @@ class DailyCheckDraft {
     double? weightKg,
     double? glucoseMmolL,
     List<String>? symptomCodes,
+    String? otherSymptomText,
+    bool clearOtherSymptomText = false,
     MedicationCheckStatus? medicationStatus,
     String? notes,
     DateTime? updatedAt,
@@ -269,6 +276,9 @@ class DailyCheckDraft {
       weightKg: weightKg ?? this.weightKg,
       glucoseMmolL: glucoseMmolL ?? this.glucoseMmolL,
       symptomCodes: symptomCodes ?? this.symptomCodes,
+      otherSymptomText: clearOtherSymptomText
+          ? null
+          : (otherSymptomText ?? this.otherSymptomText),
       medicationStatus: medicationStatus ?? this.medicationStatus,
       notes: notes ?? this.notes,
       updatedAt: updatedAt ?? this.updatedAt,

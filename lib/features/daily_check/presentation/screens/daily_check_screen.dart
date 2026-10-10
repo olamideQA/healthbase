@@ -29,6 +29,7 @@ class _DailyCheckScreenState extends ConsumerState<DailyCheckScreen> {
   final _weightController = TextEditingController();
   final _glucoseController = TextEditingController();
   final _notesController = TextEditingController();
+  final _otherSymptomController = TextEditingController();
 
   bool _initializedFromProfile = false;
 
@@ -63,6 +64,9 @@ class _DailyCheckScreenState extends ConsumerState<DailyCheckScreen> {
     if (state.notes != null) {
       _notesController.text = state.notes!;
     }
+    if (state.otherSymptomText != null) {
+      _otherSymptomController.text = state.otherSymptomText!;
+    }
   }
 
   @override
@@ -74,6 +78,7 @@ class _DailyCheckScreenState extends ConsumerState<DailyCheckScreen> {
     _weightController.dispose();
     _glucoseController.dispose();
     _notesController.dispose();
+    _otherSymptomController.dispose();
     super.dispose();
   }
 
@@ -190,7 +195,12 @@ class _DailyCheckScreenState extends ConsumerState<DailyCheckScreen> {
                 'Symptoms Reported',
                 check.symptoms.isEmpty
                     ? 'None reported'
-                    : check.symptoms.map((s) => s.displayName).join(', '),
+                    : check.symptoms
+                        .map((s) => s.symptomCode == 'other' &&
+                                (s.customDescription ?? '').isNotEmpty
+                            ? 'Other: ${s.customDescription}'
+                            : s.displayName)
+                        .join(', '),
               ),
               if (check.notes != null && check.notes!.isNotEmpty) ...[
                 const Divider(height: AppSpacing.lg),
@@ -363,6 +373,7 @@ class _DailyCheckScreenState extends ConsumerState<DailyCheckScreen> {
     _weightController.clear();
     _glucoseController.clear();
     _notesController.clear();
+    _otherSymptomController.clear();
   }
 
   Widget _buildStepperHeader(int currentStep) {
@@ -725,6 +736,17 @@ class _DailyCheckScreenState extends ConsumerState<DailyCheckScreen> {
         ),
         const SizedBox(height: AppSpacing.sm),
         ...standardList.map((sym) => _symptomTile(notifier, state, sym, profileId)),
+        if (state.symptoms.any((s) => s.symptomCode == 'other')) ...[
+          const SizedBox(height: AppSpacing.md),
+          AppTextField(
+            controller: _otherSymptomController,
+            label: 'Describe your other symptom * Required',
+            hintText: 'e.g. Mild ear pressure since morning',
+            maxLines: 2,
+            onChanged: (val) =>
+                notifier.setOtherSymptomText(val, profileId: profileId),
+          ),
+        ],
       ],
     );
   }
@@ -967,7 +989,11 @@ class _DailyCheckScreenState extends ConsumerState<DailyCheckScreen> {
                 'Symptoms',
                 state.symptoms.isEmpty
                     ? 'None reported'
-                    : state.symptoms.map((s) => s.displayName).join(', '),
+                    : state.symptoms
+                        .map((s) => s.symptomCode == 'other'
+                            ? 'Other: ${(state.otherSymptomText ?? s.customDescription ?? '').trim().isEmpty ? '(description required)' : (state.otherSymptomText ?? s.customDescription ?? '').trim()}'
+                            : s.displayName)
+                        .join(', '),
               ),
               if (state.notes != null && state.notes!.isNotEmpty) ...[
                 const Divider(height: AppSpacing.md),

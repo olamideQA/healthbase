@@ -88,7 +88,7 @@ class DailyCheckRepository {
       temperatureCelsius: Value(draft.temperatureCelsius),
       weightKg: Value(draft.weightKg),
       glucoseMmolL: Value(draft.glucoseMmolL),
-      symptomsJson: Value(jsonEncode(draft.symptomCodes)),
+      symptomsJson: Value(jsonEncode(_encodeDraftSymptoms(draft))),
       medicationStatus: Value(draft.medicationStatus?.toDbValue()),
       notes: Value(draft.notes),
       updatedAt: Value(DateTime.now()),
@@ -111,13 +111,7 @@ class DailyCheckRepository {
       return null;
     }
 
-    List<String> codes = [];
-    if (row.symptomsJson != null) {
-      try {
-        final decoded = jsonDecode(row.symptomsJson!) as List;
-        codes = decoded.cast<String>();
-      } catch (_) {}
-    }
+    final decodedDraft = _decodeDraftSymptoms(row.symptomsJson);
 
     return DailyCheckDraft(
       profileId: row.profileId,
@@ -129,13 +123,57 @@ class DailyCheckRepository {
       temperatureCelsius: row.temperatureCelsius,
       weightKg: row.weightKg,
       glucoseMmolL: row.glucoseMmolL,
-      symptomCodes: codes,
+      symptomCodes: decodedDraft.codes,
+      otherSymptomText: decodedDraft.otherText,
       medicationStatus: row.medicationStatus != null
           ? MedicationCheckStatus.fromDbValue(row.medicationStatus!)
           : null,
       notes: row.notes,
       updatedAt: row.updatedAt,
     );
+  }
+
+  /// Encode draft symptoms so the free-text "other" detail survives an
+  /// app kill without a local-DB migration. Legacy drafts stored a plain
+  /// `List<String>`; new drafts store `List<Map>` with optional `desc`.
+  static List<Map<String, dynamic>> _encodeDraftSymptoms(DailyCheckDraft draft) {
+    return draft.symptomCodes.map((code) {
+      if (code == 'other') {
+        return <String, dynamic>{
+          'code': code,
+          if ((draft.otherSymptomText ?? '').trim().isNotEmpty)
+            'desc': draft.otherSymptomText!.trim(),
+        };
+      }
+      return <String, dynamic>{'code': code};
+    }).toList();
+  }
+
+  static ({List<String> codes, String? otherText}) _decodeDraftSymptoms(
+    String? raw,
+  ) {
+    if (raw == null) return (codes: <String>[], otherText: null);
+    try {
+      final decoded = jsonDecode(raw) as List;
+      final codes = <String>[];
+      String? otherText;
+      for (final entry in decoded) {
+        if (entry is String) {
+          codes.add(entry);
+        } else if (entry is Map) {
+          final code = entry['code']?.toString();
+          if (code == null || code.isEmpty) continue;
+          codes.add(code);
+          if (code == 'other') {
+            final desc = entry['desc']?.toString();
+            if (desc != null && desc.trim().isNotEmpty) otherText = desc.trim();
+          }
+        }
+      }
+      return (codes: codes, otherText: otherText);
+    } catch (_) {
+      return (codes: <String>[], otherText: null);
+    }
   }
 
   /// Clear draft upon completion or explicit reset.
@@ -285,8 +323,10 @@ class DailyCheckRepository {
     // 4. Clear the draft
     await clearDraft(profileId);
 
-    // 5. Trigger sync
-    syncEngine.pushPendingMeasurements(profileId).ignore();
+    // 5. Trigger sync: daily checks first (parents), then measurements.
+    syncEngine.pushPendingDailyChecks(profileId).then((_) {
+      syncEngine.pushPendingMeasurements(profileId).ignore();
+    }).ignore();
 
     return DailyCheck(
       id: checkId,

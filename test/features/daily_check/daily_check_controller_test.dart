@@ -113,6 +113,22 @@ void main() {
       expect(controller.state.currentStep, 3);
     });
 
+    test('step 2 other symptom requires free-text description', () {
+      controller.goToStep(2);
+      final other = CheckSymptom.findByCode('other')!;
+      controller.toggleSymptom(other);
+      expect(
+        controller.validateCurrentStep(),
+        'Please describe your other symptom in a few words.',
+      );
+      expect(controller.nextStep('p-1'), isFalse);
+
+      controller.setOtherSymptomText('Mild ear pressure', profileId: 'p-1');
+      expect(controller.validateCurrentStep(), isNull);
+      expect(controller.nextStep('p-1'), isTrue);
+      expect(controller.state.currentStep, 3);
+    });
+
     test('step 3 medication adherence validation', () {
       controller.goToStep(3);
 

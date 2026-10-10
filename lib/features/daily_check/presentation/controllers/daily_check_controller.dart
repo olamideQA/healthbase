@@ -17,6 +17,7 @@ class DailyCheckState {
     this.weightKg,
     this.glucoseMmolL,
     this.symptoms = const [],
+    this.otherSymptomText,
     this.medicationStatus,
     this.notes,
     this.isLoading = false,
@@ -36,6 +37,7 @@ class DailyCheckState {
   final double? weightKg;
   final double? glucoseMmolL;
   final List<CheckSymptom> symptoms;
+  final String? otherSymptomText;
   final MedicationCheckStatus? medicationStatus;
   final String? notes;
   final bool isLoading;
@@ -59,6 +61,7 @@ class DailyCheckState {
       weightKg: weightKg,
       glucoseMmolL: glucoseMmolL,
       symptomCodes: symptoms.map((s) => s.symptomCode).toList(),
+      otherSymptomText: otherSymptomText,
       medicationStatus: medicationStatus,
       notes: notes,
       updatedAt: DateTime.now(),
@@ -81,6 +84,8 @@ class DailyCheckState {
     double? glucoseMmolL,
     bool clearGlucose = false,
     List<CheckSymptom>? symptoms,
+    String? otherSymptomText,
+    bool clearOtherSymptomText = false,
     MedicationCheckStatus? medicationStatus,
     String? notes,
     bool clearNotes = false,
@@ -102,6 +107,9 @@ class DailyCheckState {
       weightKg: clearWeight ? null : (weightKg ?? this.weightKg),
       glucoseMmolL: clearGlucose ? null : (glucoseMmolL ?? this.glucoseMmolL),
       symptoms: symptoms ?? this.symptoms,
+      otherSymptomText: clearOtherSymptomText
+          ? null
+          : (otherSymptomText ?? this.otherSymptomText),
       medicationStatus: medicationStatus ?? this.medicationStatus,
       notes: clearNotes ? null : (notes ?? this.notes),
       isLoading: isLoading ?? this.isLoading,
@@ -142,9 +150,17 @@ class DailyCheckController extends StateNotifier<DailyCheckState> {
       // Check for saved draft
       final draft = await _repo.getDraft(profileId);
       if (draft != null) {
-        final recoveredSymptoms = draft.symptomCodes
-            .map((code) => CheckSymptom.findByCode(code) ?? CheckSymptom(symptomCode: code, displayName: code))
-            .toList();
+        final recoveredSymptoms = draft.symptomCodes.map((code) {
+          if (code == 'other') {
+            return CheckSymptom(
+              symptomCode: 'other',
+              displayName: 'Other (describe below)',
+              customDescription: draft.otherSymptomText,
+            );
+          }
+          return CheckSymptom.findByCode(code) ??
+              CheckSymptom(symptomCode: code, displayName: code);
+        }).toList();
 
         state = state.copyWith(
           isLoading: false,
@@ -158,6 +174,7 @@ class DailyCheckController extends StateNotifier<DailyCheckState> {
           weightKg: draft.weightKg,
           glucoseMmolL: draft.glucoseMmolL,
           symptoms: recoveredSymptoms,
+          otherSymptomText: draft.otherSymptomText,
           medicationStatus: draft.medicationStatus,
           notes: draft.notes,
         );
@@ -229,10 +246,48 @@ class DailyCheckController extends StateNotifier<DailyCheckState> {
     final index = list.indexWhere((s) => s.symptomCode == symptom.symptomCode);
     if (index >= 0) {
       list.removeAt(index);
+      if (symptom.symptomCode == 'other') {
+        state = state.copyWith(
+          symptoms: list,
+          clearOtherSymptomText: true,
+          clearErrorMessage: true,
+        );
+      } else {
+        state = state.copyWith(symptoms: list, clearErrorMessage: true);
+      }
     } else {
-      list.add(symptom);
+      if (symptom.symptomCode == 'other') {
+        list.add(CheckSymptom(
+          symptomCode: 'other',
+          displayName: 'Other (describe below)',
+          customDescription: state.otherSymptomText,
+        ));
+      } else {
+        list.add(symptom);
+      }
+      state = state.copyWith(symptoms: list, clearErrorMessage: true);
     }
-    state = state.copyWith(symptoms: list, clearErrorMessage: true);
+    if (profileId != null) _autoSaveDraft(profileId);
+  }
+
+  void setOtherSymptomText(String? text, {String? profileId}) {
+    final trimmed = text?.trim();
+    final normalized = (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+    final list = List<CheckSymptom>.from(state.symptoms);
+    final index = list.indexWhere((s) => s.symptomCode == 'other');
+    if (index >= 0) {
+      list[index] = CheckSymptom(
+        symptomCode: 'other',
+        displayName: 'Other (describe below)',
+        customDescription: normalized,
+      );
+    }
+    state = state.copyWith(
+      symptoms: list,
+      otherSymptomText: normalized,
+      clearOtherSymptomText: normalized == null,
+      clearErrorMessage: true,
+    );
     if (profileId != null) _autoSaveDraft(profileId);
   }
 
@@ -346,7 +401,16 @@ class DailyCheckController extends StateNotifier<DailyCheckState> {
         return null;
 
       case 2:
-        // Symptoms are optional (0 symptoms is valid)
+        // Symptoms are optional (0 symptoms is valid), but "Other"
+        // requires free-text detail.
+        final hasOther =
+            state.symptoms.any((s) => s.symptomCode == 'other');
+        if (hasOther) {
+          final text = (state.otherSymptomText ?? '').trim();
+          if (text.isEmpty) {
+            return 'Please describe your other symptom in a few words.';
+          }
+        }
         return null;
 
       case 3:
@@ -379,13 +443,31 @@ class DailyCheckController extends StateNotifier<DailyCheckState> {
       return false;
     }
 
+    final hasOther = state.symptoms.any((s) => s.symptomCode == 'other');
+    if (hasOther && (state.otherSymptomText ?? '').trim().isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Please describe your other symptom in a few words.',
+      );
+      return false;
+    }
+
     state = state.copyWith(isLoading: true, clearErrorMessage: true);
     try {
+      final symptoms = state.symptoms.map((s) {
+        if (s.symptomCode == 'other') {
+          return CheckSymptom(
+            symptomCode: 'other',
+            displayName: 'Other (describe below)',
+            customDescription: (state.otherSymptomText ?? '').trim(),
+          );
+        }
+        return s;
+      }).toList();
       final check = await _repo.completeCheck(
         profileId: profileId,
         feeling: state.feeling!,
         medicationStatus: state.medicationStatus!,
-        symptoms: state.symptoms,
+        symptoms: symptoms,
         notes: state.notes,
         heartRateBpm: state.heartRateBpm!,
         systolicMmhg: state.systolicMmhg,

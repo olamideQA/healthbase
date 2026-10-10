@@ -22,6 +22,8 @@ void main() {
     mockSyncEngine = MockSyncEngine();
     when(() => mockSyncEngine.pushPendingMeasurements(any()))
         .thenAnswer((_) async => 1);
+    when(() => mockSyncEngine.pushPendingDailyChecks(any()))
+        .thenAnswer((_) async => 1);
     when(() => mockSyncEngine.syncProfile(any())).thenAnswer((_) async {});
 
     measurementRepository =
@@ -77,6 +79,25 @@ void main() {
       await repository.clearDraft(profileId);
       final afterClear = await repository.getDraft(profileId);
       expect(afterClear, isNull);
+    });
+
+    test('saveDraft preserves other-symptom free text across app kill', () async {
+      const profileId = 'user-profile-other';
+      final draft = DailyCheckDraft(
+        profileId: profileId,
+        currentStep: 2,
+        feeling: CheckFeeling.okay,
+        heartRateBpm: 70.0,
+        symptomCodes: const ['headache', 'other'],
+        otherSymptomText: 'Mild ear pressure since morning',
+        updatedAt: DateTime.now(),
+      );
+
+      await repository.saveDraft(draft);
+      final retrieved = await repository.getDraft(profileId);
+      expect(retrieved, isNotNull);
+      expect(retrieved!.symptomCodes, ['headache', 'other']);
+      expect(retrieved.otherSymptomText, 'Mild ear pressure since morning');
     });
 
     test('getDraft ignores and clears drafts older than 24 hours', () async {
