@@ -20,7 +20,6 @@ import '../../features/medications/presentation/screens/add_medication_screen.da
 import '../../features/family/presentation/screens/family_screen.dart';
 import '../../features/family/presentation/screens/add_family_member_screen.dart';
 import '../../features/reports/presentation/screens/health_reports_screen.dart';
-import '../../features/camera_pulse/presentation/screens/camera_pulse_screen.dart';
 import '../theme/design_system_gallery.dart';
 
 class AppRoutes {
@@ -138,10 +137,9 @@ GoRouter createAppRouter({
         path: AppRoutes.reports,
         builder: (context, state) => const HealthReportsScreen(),
       ),
-      GoRoute(
-        path: AppRoutes.cameraPulse,
-        builder: (context, state) => const CameraPulseScreen(),
-      ),
+      // Camera Pulse is hidden until the camera pipeline is real (Loop 13
+      // on hold). The feature code and tests stay in the repo; only the
+      // route is disabled so no screen or deep link can reach it.
       GoRoute(
         path: AppRoutes.designSystem,
         builder: (context, state) => const DesignSystemGalleryScreen(),

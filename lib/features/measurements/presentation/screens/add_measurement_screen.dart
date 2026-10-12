@@ -5,6 +5,7 @@ import '../../../../core/errors/failures.dart';
 import '../../../../core/safety/clinical_thresholds.dart';
 import '../../../../core/safety/emergency_protocols.dart';
 import '../../../../core/safety/widgets/clinical_disclaimer_sheet.dart';
+import '../../../../core/safety/widgets/emergency_dialog.dart';
 import '../../../../core/safety/widgets/urgent_care_alert_banner.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -201,10 +202,12 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                EmergencyProtocols.launchEmergencyCall('911');
+                // Region-aware directory (US 911, UK 999, EU 112, AU 000)
+                // instead of a hardcoded number.
+                showEmergencyDialog(ctx);
               },
               child: const Text(
-                'Call Emergency (911)',
+                'Emergency Numbers',
                 style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.bold),
               ),
             ),

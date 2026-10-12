@@ -625,19 +625,6 @@ class _DashboardContent extends ConsumerWidget {
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.md),
-        Row(
-          children: [
-            Expanded(
-              child: AppButton(
-                label: 'Camera Pulse (PPG)',
-                variant: AppButtonVariant.outline,
-                icon: Icons.camera_alt_outlined,
-                onPressed: () => context.push(AppRoutes.cameraPulse),
-              ),
-            ),
-          ],
-        ),
       ],
     );
   }
