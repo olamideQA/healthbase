@@ -15,8 +15,12 @@ final measurementRepositoryProvider = Provider<MeasurementRepository>((ref) {
 
 final measurementsStreamProvider =
     StreamProvider.family<List<Measurement>, String>((ref, profileId) {
-  final repo = ref.watch(measurementRepositoryProvider);
-  return repo.watchMeasurements(profileId: profileId);
+  try {
+    final repo = ref.watch(measurementRepositoryProvider);
+    return repo.watchMeasurements(profileId: profileId);
+  } catch (_) {
+    return const Stream.empty();
+  }
 });
 
 class MeasurementRepository {

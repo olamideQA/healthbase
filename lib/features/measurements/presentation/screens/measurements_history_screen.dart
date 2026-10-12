@@ -7,7 +7,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/components/app_card.dart';
 import '../../../../core/theme/components/app_loading_state.dart';
-import '../../../profile/data/profile_repository.dart';
+import '../../../family/data/family_repository.dart';
 import '../../../profile/domain/models/health_profile.dart';
 import '../../data/measurement_repository.dart';
 import '../../domain/models/measurement.dart';
@@ -29,7 +29,7 @@ class _MeasurementsHistoryScreenState
 
   @override
   Widget build(BuildContext context) {
-    final profileAsync = ref.watch(myProfileProvider);
+    final profileAsync = ref.watch(currentProfileProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(

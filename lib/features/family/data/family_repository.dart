@@ -49,6 +49,24 @@ final activeProfileProvider = FutureProvider<HealthProfile?>((ref) async {
   return profileRepo.getMyProfile();
 });
 
+/// The profile whose health records the data screens should display.
+///
+/// Resolves to the signed-in user's own profile unless a family member has
+/// been selected via [activeProfileIdProvider]. Display units always follow
+/// the signed-in user's preference, regardless of whose records are shown.
+final currentProfileProvider = FutureProvider<HealthProfile?>((ref) async {
+  final activeId = ref.watch(activeProfileIdProvider);
+  final self = await ref.watch(myProfileProvider.future);
+  if (activeId == null || activeId == self?.id) return self;
+
+  final profiles = await ref.watch(familyRepositoryProvider).getFamilyProfiles();
+  final matched = profiles.where((p) => p.id == activeId).firstOrNull;
+  if (matched == null) return self;
+
+  final member = matched.toHealthProfile();
+  return self == null ? member : member.copyWith(preferredUnits: self.preferredUnits);
+});
+
 /// Provides the effective permission roles for the currently active profile.
 final activeProfilePermissionsProvider = Provider<FamilyProfile?>((ref) {
   final activeId = ref.watch(activeProfileIdProvider);

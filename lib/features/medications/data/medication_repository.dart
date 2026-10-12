@@ -15,8 +15,12 @@ final medicationRepositoryProvider = Provider<MedicationRepository>((ref) {
 
 final activeMedicationsStreamProvider =
     StreamProvider.family<List<Medication>, String>((ref, profileId) {
-  final repo = ref.watch(medicationRepositoryProvider);
-  return repo.watchMedications(profileId: profileId, activeOnly: true);
+  try {
+    final repo = ref.watch(medicationRepositoryProvider);
+    return repo.watchMedications(profileId: profileId, activeOnly: true);
+  } catch (_) {
+    return const Stream.empty();
+  }
 });
 
 final allMedicationsStreamProvider =

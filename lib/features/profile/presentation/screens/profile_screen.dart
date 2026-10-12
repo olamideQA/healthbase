@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../../core/routing/app_router.dart';
+import '../../../../core/safety/widgets/clinical_disclaimer_sheet.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -11,6 +13,7 @@ import '../../../../core/theme/components/app_loading_state.dart';
 import '../../../../core/theme/components/app_text_field.dart';
 import '../../../../core/utils/unit_converter.dart';
 import '../../../auth/data/auth_repository.dart';
+import '../../../auth/presentation/account_actions.dart';
 import '../../domain/models/health_profile.dart';
 import '../controllers/profile_controller.dart';
 
@@ -371,9 +374,65 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 label: 'Profile Scope',
                 value: profile.isSelf ? 'Self (Primary Account Holder)' : 'Family Member',
               ),
+              const Divider(height: AppSpacing.xl),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.people_outline, color: AppColors.primary600),
+                title: const Text('Family Health & Caregiving'),
+                subtitle: const Text('Manage dependents and shared profile access'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push(AppRoutes.family),
+              ),
+              const Divider(height: AppSpacing.md),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.primary600),
+                title: const Text('Health Reports & Export'),
+                subtitle: const Text('Generate printable PDF summaries for appointments'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push(AppRoutes.reports),
+              ),
+              const Divider(height: AppSpacing.md),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.verified_user_outlined, color: AppColors.primary600),
+                title: const Text('Clinical & Safety Policy'),
+                subtitle: const Text('Review non-diagnostic boundaries and emergency guidance'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => showClinicalDisclaimerSheet(context),
+              ),
             ],
           ),
         ),
+        const SizedBox(height: AppSpacing.lg),
+
+        // Session & Account Deletion (moved out of the daily Home Dashboard)
+        AppCard(
+          title: 'Account Management',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppButton(
+                label: 'Sign Out',
+                variant: AppButtonVariant.secondary,
+                icon: Icons.logout,
+                onPressed: () => confirmSignOut(context, ref),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              const Text(
+                'Permanently delete your HealthBase account and all stored health measurements.',
+                style: TextStyle(fontSize: 13.0, color: AppColors.neutral500),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              AppButton(
+                label: 'Delete My Account',
+                variant: AppButtonVariant.outline,
+                onPressed: () => confirmAccountDeletion(context, ref),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 80.0),
       ],
     );
   }

@@ -131,12 +131,15 @@ class AppStatusChip extends StatelessWidget {
             Icon(icon, size: 14.0, color: textColor),
             const SizedBox(width: AppSpacing.xxs),
           ],
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12.0,
-              fontWeight: FontWeight.w600,
-              color: textColor,
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12.0,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+              ),
             ),
           ),
         ],

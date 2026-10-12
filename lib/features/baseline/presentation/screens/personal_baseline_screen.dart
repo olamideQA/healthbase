@@ -6,7 +6,7 @@ import '../../../../core/safety/safety_boundaries.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/components/app_loading_state.dart';
-import '../../../profile/data/profile_repository.dart';
+import '../../../family/data/family_repository.dart';
 import '../../data/baseline_repository.dart';
 import '../../domain/models/personal_baseline.dart';
 import '../widgets/personal_baseline_metric_card.dart';
@@ -19,7 +19,7 @@ class PersonalBaselineScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profileAsync = ref.watch(myProfileProvider);
+    final profileAsync = ref.watch(currentProfileProvider);
     final selectedWindow = ref.watch(selectedBaselineWindowProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;

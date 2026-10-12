@@ -61,6 +61,7 @@ class DashboardRepository {
             type: type,
             latest: latest,
             trend: trend,
+            readingCount: typeMeasurements.length,
           );
         }
       }

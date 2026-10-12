@@ -11,7 +11,7 @@ import '../../../../core/theme/components/app_card.dart';
 import '../../../../core/theme/components/app_loading_state.dart';
 import '../../../daily_check/domain/models/daily_check.dart';
 import '../../../measurements/domain/models/measurement.dart';
-import '../../../profile/data/profile_repository.dart';
+import '../../../family/data/family_repository.dart';
 import '../../../profile/domain/models/health_profile.dart';
 import '../../domain/models/timeline_entry.dart';
 import '../controllers/timeline_controller.dart';
@@ -47,7 +47,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.offset;
     if (currentScroll >= (maxScroll - 250)) {
-      final profile = ref.read(myProfileProvider).value;
+      final profile = ref.read(currentProfileProvider).value;
       if (profile != null) {
         ref.read(timelineControllerProvider(profile.id).notifier).loadMore();
       }
@@ -56,7 +56,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profileAsync = ref.watch(myProfileProvider);
+    final profileAsync = ref.watch(currentProfileProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 

@@ -13,8 +13,9 @@ import '../../../../core/theme/components/app_button.dart';
 import '../../../../core/theme/components/app_card.dart';
 import '../../../../core/theme/components/app_text_field.dart';
 import '../../../../core/utils/unit_converter.dart';
-import '../../../profile/data/profile_repository.dart';
+import '../../../family/data/family_repository.dart';
 import '../../../profile/domain/models/health_profile.dart';
+import '../../data/measurement_repository.dart';
 import '../../domain/models/measurement.dart';
 import '../controllers/measurement_controller.dart';
 
@@ -66,6 +67,92 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
     _primaryController.clear();
     _secondaryController.clear();
     _tertiaryController.clear();
+  }
+
+  List<String> _contextTagsForType(MeasurementType type) => switch (type) {
+        MeasurementType.heartRate => const ['Resting', 'Morning', 'After Walk', 'Post-Exercise'],
+        MeasurementType.bloodPressure => const ['Rested 5m', 'Sitting', 'Left Arm', 'Morning'],
+        MeasurementType.weight => const ['Morning Fasting', 'Post-Workout', 'Evening'],
+        MeasurementType.temperature => const ['Oral', 'Forehead', 'Morning', 'Evening'],
+        MeasurementType.bloodGlucose => const ['Fasting', 'Before Meal', '2h Post-Meal', 'Bedtime'],
+      };
+
+  void _toggleNoteTag(String tag) {
+    final current = _notesController.text.trim();
+    final parts = current.isEmpty
+        ? <String>[]
+        : current.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    if (parts.contains(tag)) {
+      parts.remove(tag);
+    } else {
+      parts.add(tag);
+    }
+    setState(() {
+      _notesController.text = parts.join(', ');
+    });
+  }
+
+  void _applyLastReading(Measurement last, bool isMetric) {
+    switch (_selectedType) {
+      case MeasurementType.heartRate:
+        if (last.heartRateBpm != null) {
+          _primaryController.text = last.heartRateBpm!.toInt().toString();
+        }
+        break;
+      case MeasurementType.bloodPressure:
+        if (last.systolicMmhg != null) {
+          _primaryController.text = last.systolicMmhg!.toInt().toString();
+        }
+        if (last.diastolicMmhg != null) {
+          _secondaryController.text = last.diastolicMmhg!.toInt().toString();
+        }
+        if (last.pulseBpm != null) {
+          _tertiaryController.text = last.pulseBpm!.toInt().toString();
+        }
+        break;
+      case MeasurementType.weight:
+        if (last.weightKg != null) {
+          final v = isMetric ? last.weightKg! : UnitConverter.kgToLbs(last.weightKg!);
+          _primaryController.text = v.toStringAsFixed(1);
+        }
+        break;
+      case MeasurementType.temperature:
+        if (last.temperatureCelsius != null) {
+          final v = isMetric
+              ? last.temperatureCelsius!
+              : UnitConverter.celsiusToFahrenheit(last.temperatureCelsius!);
+          _primaryController.text = v.toStringAsFixed(1);
+        }
+        break;
+      case MeasurementType.bloodGlucose:
+        if (last.glucoseMmolL != null) {
+          final v = isMetric ? last.glucoseMmolL! : last.glucoseMmolL! * 18.0182;
+          _primaryController.text = v.toStringAsFixed(isMetric ? 1 : 0);
+        }
+        break;
+    }
+  }
+
+  String _formatLastReadingSummary(Measurement last, bool isMetric) => switch (_selectedType) {
+        MeasurementType.heartRate => '${last.heartRateBpm?.toInt() ?? '--'} bpm',
+        MeasurementType.bloodPressure =>
+          '${last.systolicMmhg?.toInt() ?? '--'}/${last.diastolicMmhg?.toInt() ?? '--'} mmHg',
+        MeasurementType.weight => last.weightKg == null
+            ? '--'
+            : '${(isMetric ? last.weightKg! : UnitConverter.kgToLbs(last.weightKg!)).toStringAsFixed(1)} ${isMetric ? 'kg' : 'lbs'}',
+        MeasurementType.temperature => last.temperatureCelsius == null
+            ? '--'
+            : '${(isMetric ? last.temperatureCelsius! : UnitConverter.celsiusToFahrenheit(last.temperatureCelsius!)).toStringAsFixed(1)} ${isMetric ? '°C' : '°F'}',
+        MeasurementType.bloodGlucose => last.glucoseMmolL == null
+            ? '--'
+            : '${(isMetric ? last.glucoseMmolL! : last.glucoseMmolL! * 18.0182).toStringAsFixed(isMetric ? 1 : 0)} ${isMetric ? 'mmol/L' : 'mg/dL'}',
+      };
+
+  void _nudgePrimary(double delta, {required bool integerField, required double defaultSeed}) {
+    final current = double.tryParse(_primaryController.text.trim()) ?? defaultSeed;
+    final next = (current + delta).clamp(1.0, 999.0);
+    _primaryController.text =
+        integerField ? next.round().toString() : next.toStringAsFixed(1);
   }
 
   Measurement? _buildMeasurementFromInputs(String profileId, UnitSystem units) {
@@ -245,7 +332,7 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profileAsync = ref.watch(myProfileProvider);
+    final profileAsync = ref.watch(currentProfileProvider);
     final state = ref.watch(measurementControllerProvider);
     final isLoading = state.isLoading;
     final errorMessage = state.hasError
@@ -281,6 +368,17 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
                 ? EmergencyProtocols.evaluateMeasurement(previewMeasurement)
                 : null;
 
+            final recentAsync = ref.watch(measurementsStreamProvider(profile.id));
+            final lastForType = recentAsync.valueOrNull
+                ?.where((m) => m.type == _selectedType)
+                .firstOrNull;
+            final contextTags = _contextTagsForType(_selectedType);
+            final activeNotes = _notesController.text
+                .split(',')
+                .map((s) => s.trim())
+                .where((s) => s.isNotEmpty)
+                .toSet();
+
             return SingleChildScrollView(
               padding: AppSpacing.paddingAllLg,
               child: ConstrainedBox(
@@ -288,28 +386,54 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Metric Type Selector
+                    // Metric Type Selector (1-Tap Pills + Dropdown)
                     AppCard(
                       title: 'Measurement Type',
-                      child: DropdownButtonFormField<MeasurementType>(
-                        initialValue: _selectedType,
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.favorite_outline),
-                        ),
-                        items: MeasurementType.values.map((t) {
-                          return DropdownMenuItem(
-                            value: t,
-                            child: Text(t.displayName),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(() {
-                              _selectedType = val;
-                              _clearFields();
-                            });
-                          }
-                        },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap(
+                            spacing: AppSpacing.sm,
+                            runSpacing: AppSpacing.xs,
+                            children: MeasurementType.values.map((t) {
+                              final selected = t == _selectedType;
+                              return ChoiceChip(
+                                label: Text(t.displayName),
+                                selected: selected,
+                                onSelected: (val) {
+                                  if (val && t != _selectedType) {
+                                    setState(() {
+                                      _selectedType = t;
+                                      _clearFields();
+                                    });
+                                  }
+                                },
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          DropdownButtonFormField<MeasurementType>(
+                            key: ValueKey('dropdown-${_selectedType.name}'),
+                            initialValue: _selectedType,
+                            decoration: const InputDecoration(
+                              prefixIcon: Icon(Icons.favorite_outline),
+                            ),
+                            items: MeasurementType.values.map((t) {
+                              return DropdownMenuItem(
+                                value: t,
+                                child: Text(t.displayName),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() {
+                                  _selectedType = val;
+                                  _clearFields();
+                                });
+                              }
+                            },
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -336,6 +460,16 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
                     // Input Form for selected type
                     AppCard(
                       title: 'Measurement Value',
+                      trailing: lastForType != null
+                          ? ActionChip(
+                              avatar: const Icon(Icons.history, size: 16),
+                              label: Text(
+                                'Use last: ${_formatLastReadingSummary(lastForType, isMetric)}',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              onPressed: () => _applyLastReading(lastForType, isMetric),
+                            )
+                          : null,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -346,6 +480,28 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
                               controller: _primaryController,
                               keyboardType: TextInputType.number,
                               prefixIcon: const Icon(Icons.favorite, color: AppColors.statusUrgent),
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            Wrap(
+                              spacing: AppSpacing.xs,
+                              children: [
+                                ActionChip(
+                                  label: const Text('-5'),
+                                  onPressed: () => _nudgePrimary(-5, integerField: true, defaultSeed: 72),
+                                ),
+                                ActionChip(
+                                  label: const Text('-1'),
+                                  onPressed: () => _nudgePrimary(-1, integerField: true, defaultSeed: 72),
+                                ),
+                                ActionChip(
+                                  label: const Text('+1'),
+                                  onPressed: () => _nudgePrimary(1, integerField: true, defaultSeed: 72),
+                                ),
+                                ActionChip(
+                                  label: const Text('+5'),
+                                  onPressed: () => _nudgePrimary(5, integerField: true, defaultSeed: 72),
+                                ),
+                              ],
                             ),
                           ],
                           if (_selectedType == MeasurementType.bloodPressure) ...[
@@ -381,6 +537,44 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
                               prefixIcon: const Icon(Icons.monitor_weight_outlined),
                             ),
+                            const SizedBox(height: AppSpacing.sm),
+                            Wrap(
+                              spacing: AppSpacing.xs,
+                              children: [
+                                ActionChip(
+                                  label: const Text('-0.5'),
+                                  onPressed: () => _nudgePrimary(
+                                    -0.5,
+                                    integerField: false,
+                                    defaultSeed: isMetric ? 70.0 : 154.0,
+                                  ),
+                                ),
+                                ActionChip(
+                                  label: const Text('-0.1'),
+                                  onPressed: () => _nudgePrimary(
+                                    -0.1,
+                                    integerField: false,
+                                    defaultSeed: isMetric ? 70.0 : 154.0,
+                                  ),
+                                ),
+                                ActionChip(
+                                  label: const Text('+0.1'),
+                                  onPressed: () => _nudgePrimary(
+                                    0.1,
+                                    integerField: false,
+                                    defaultSeed: isMetric ? 70.0 : 154.0,
+                                  ),
+                                ),
+                                ActionChip(
+                                  label: const Text('+0.5'),
+                                  onPressed: () => _nudgePrimary(
+                                    0.5,
+                                    integerField: false,
+                                    defaultSeed: isMetric ? 70.0 : 154.0,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                           if (_selectedType == MeasurementType.temperature) ...[
                             AppTextField(
@@ -389,6 +583,28 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
                               controller: _primaryController,
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
                               prefixIcon: const Icon(Icons.thermostat_outlined),
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            Wrap(
+                              spacing: AppSpacing.xs,
+                              children: [
+                                ActionChip(
+                                  label: const Text('-0.2'),
+                                  onPressed: () => _nudgePrimary(
+                                    -0.2,
+                                    integerField: false,
+                                    defaultSeed: isMetric ? 36.6 : 98.6,
+                                  ),
+                                ),
+                                ActionChip(
+                                  label: const Text('+0.2'),
+                                  onPressed: () => _nudgePrimary(
+                                    0.2,
+                                    integerField: false,
+                                    defaultSeed: isMetric ? 36.6 : 98.6,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                           if (_selectedType == MeasurementType.bloodGlucose) ...[
@@ -437,6 +653,28 @@ class _AddMeasurementScreenState extends ConsumerState<AddMeasurementScreen> {
                             onChanged: (val) {
                               if (val != null) setState(() => _selectedProvenance = val);
                             },
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          const Text(
+                            'Quick Context Tags',
+                            style: TextStyle(
+                              fontSize: 12.0,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.neutral600,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Wrap(
+                            spacing: AppSpacing.xs,
+                            runSpacing: AppSpacing.xs,
+                            children: contextTags.map((tag) {
+                              final isSelected = activeNotes.contains(tag);
+                              return FilterChip(
+                                label: Text(tag, style: const TextStyle(fontSize: 12)),
+                                selected: isSelected,
+                                onSelected: (_) => _toggleNoteTag(tag),
+                              );
+                            }).toList(),
                           ),
                           const SizedBox(height: AppSpacing.md),
                           AppTextField(

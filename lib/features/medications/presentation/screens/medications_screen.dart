@@ -7,7 +7,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/components/app_card.dart';
 import '../../../../core/theme/components/app_loading_state.dart';
-import '../../../profile/data/profile_repository.dart';
+import '../../../family/data/family_repository.dart';
 import '../../data/medication_repository.dart';
 import 'medication_detail_screen.dart';
 
@@ -16,7 +16,7 @@ class MedicationsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profileAsync = ref.watch(myProfileProvider);
+    final profileAsync = ref.watch(currentProfileProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 

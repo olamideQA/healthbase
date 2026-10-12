@@ -34,46 +34,49 @@ class AppCard extends StatelessWidget {
         ),
       ),
       padding: padding,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (title != null) ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title!,
-                        style: TextStyle(
-                          fontSize: 16.0,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? AppColors.neutral50 : AppColors.neutral900,
-                        ),
-                      ),
-                      if (subtitle != null) ...[
-                        const SizedBox(height: AppSpacing.xxs),
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (title != null) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          subtitle!,
+                          title!,
                           style: TextStyle(
-                            fontSize: 13.0,
-                            color: isDark ? AppColors.neutral400 : AppColors.neutral500,
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? AppColors.neutral50 : AppColors.neutral900,
                           ),
                         ),
+                        if (subtitle != null) ...[
+                          const SizedBox(height: AppSpacing.xxs),
+                          Text(
+                            subtitle!,
+                            style: TextStyle(
+                              fontSize: 13.0,
+                              color: isDark ? AppColors.neutral400 : AppColors.neutral500,
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-                if (trailing != null) trailing!,
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
+                  if (trailing != null) trailing!,
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+            ],
+            child,
           ],
-          child,
-        ],
+        ),
       ),
     );
 

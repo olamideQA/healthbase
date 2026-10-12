@@ -3,19 +3,34 @@ import '../../../../core/theme/components/app_status_chip.dart';
 import '../../../daily_check/domain/models/daily_check.dart';
 import '../../../measurements/domain/models/measurement.dart';
 
+/// Readings needed before a vital shows a meaningful personal baseline trend.
+const int kBaselineUnlockReadings = 3;
+
 @immutable
 class MetricLatestState {
   const MetricLatestState({
     required this.type,
     this.latest,
     this.trend = HealthTrendStatus.insufficientData,
+    this.readingCount = 0,
   });
 
   final MeasurementType type;
   final Measurement? latest;
   final HealthTrendStatus trend;
 
+  /// Number of recent readings recorded for this vital (capped by query limit).
+  final int readingCount;
+
   bool get hasReading => latest != null;
+
+  /// Reading count that is never lower than what [latest] implies.
+  int get effectiveReadingCount =>
+      readingCount > 0 ? readingCount : (hasReading ? 1 : 0);
+
+  bool get isBaselineUnlocked =>
+      effectiveReadingCount >= kBaselineUnlockReadings ||
+      trend != HealthTrendStatus.insufficientData;
 }
 
 @immutable

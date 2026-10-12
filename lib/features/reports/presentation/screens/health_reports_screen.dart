@@ -8,7 +8,7 @@ import 'package:healthbase/core/theme/app_typography.dart';
 import 'package:healthbase/core/theme/components/app_button.dart';
 import 'package:healthbase/core/theme/components/app_card.dart';
 import 'package:healthbase/core/theme/components/app_loading_state.dart';
-import 'package:healthbase/features/profile/data/profile_repository.dart';
+import 'package:healthbase/features/family/data/family_repository.dart';
 import 'package:healthbase/features/reports/data/report_repository.dart';
 import 'package:healthbase/features/reports/domain/models/health_report_data.dart';
 
@@ -71,7 +71,7 @@ class _HealthReportsScreenState extends ConsumerState<HealthReportsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final profileAsync = ref.watch(myProfileProvider);
+    final profileAsync = ref.watch(currentProfileProvider);
     final dateFormat = DateFormat('MMM d, yyyy');
 
     return Scaffold(

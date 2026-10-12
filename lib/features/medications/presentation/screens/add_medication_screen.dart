@@ -7,7 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/components/app_button.dart';
-import '../../../profile/data/profile_repository.dart';
+import '../../../family/data/family_repository.dart';
 import '../../data/medication_repository.dart';
 import '../../domain/models/medication.dart';
 import '../../domain/services/medication_reminder_service.dart';
@@ -47,7 +47,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final profile = await ref.read(myProfileProvider.future);
+      final profile = await ref.read(currentProfileProvider.future);
       if (profile == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

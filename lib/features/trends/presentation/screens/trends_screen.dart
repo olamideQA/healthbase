@@ -9,7 +9,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/components/app_card.dart';
 import '../../../../core/theme/components/app_loading_state.dart';
 import '../../../measurements/domain/models/measurement.dart';
-import '../../../profile/data/profile_repository.dart';
+import '../../../family/data/family_repository.dart';
 import '../../data/trends_repository.dart';
 import '../../domain/models/trend_chart_data.dart';
 import '../widgets/metric_chart_view.dart';
@@ -26,7 +26,7 @@ class TrendsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profileAsync = ref.watch(myProfileProvider);
+    final profileAsync = ref.watch(currentProfileProvider);
     final selectedMetric = ref.watch(selectedTrendMetricProvider);
     final selectedPeriod = ref.watch(selectedTrendPeriodProvider);
     final theme = Theme.of(context);

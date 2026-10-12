@@ -11,7 +11,7 @@ import '../../../../core/theme/components/app_button.dart';
 import '../../../../core/theme/components/app_card.dart';
 import '../../../../core/theme/components/app_text_field.dart';
 import '../../../../core/utils/unit_converter.dart';
-import '../../../profile/data/profile_repository.dart';
+import '../../../family/data/family_repository.dart';
 import '../../../profile/domain/models/health_profile.dart';
 import '../../domain/models/daily_check.dart';
 import '../controllers/daily_check_controller.dart';
@@ -37,7 +37,7 @@ class _DailyCheckScreenState extends ConsumerState<DailyCheckScreen> {
 
   void _syncControllersFromState() {
     final state = ref.read(dailyCheckControllerProvider);
-    final profile = ref.read(myProfileProvider).valueOrNull;
+    final profile = ref.read(currentProfileProvider).valueOrNull;
     final isMetric = profile?.preferredUnits != UnitSystem.imperial;
 
     if (state.heartRateBpm != null) {
@@ -86,11 +86,11 @@ class _DailyCheckScreenState extends ConsumerState<DailyCheckScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profileAsync = ref.watch(myProfileProvider);
+    final profileAsync = ref.watch(currentProfileProvider);
     final checkState = ref.watch(dailyCheckControllerProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    ref.listen<AsyncValue<HealthProfile?>>(myProfileProvider, (_, next) {
+    ref.listen<AsyncValue<HealthProfile?>>(currentProfileProvider, (_, next) {
       final profile = next.valueOrNull;
       if (profile != null && !_initializedFromProfile) {
         _initializedFromProfile = true;

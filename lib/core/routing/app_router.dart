@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/data/auth_repository.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
@@ -21,6 +22,18 @@ import '../../features/family/presentation/screens/family_screen.dart';
 import '../../features/family/presentation/screens/add_family_member_screen.dart';
 import '../../features/reports/presentation/screens/health_reports_screen.dart';
 import '../theme/design_system_gallery.dart';
+import '../../features/measurements/domain/models/measurement.dart';
+import 'app_shell.dart';
+
+/// Parses a `MeasurementType` from either its enum name (`heartRate`) or
+/// DB value (`heart_rate`). Returns null for missing/unknown values.
+MeasurementType? _parseMeasurementType(String? raw) {
+  if (raw == null || raw.isEmpty) return null;
+  for (final t in MeasurementType.values) {
+    if (t.name == raw || t.toDbValue() == raw) return t;
+  }
+  return null;
+}
 
 class AppRoutes {
   const AppRoutes._();
@@ -77,25 +90,58 @@ GoRouter createAppRouter({
         path: AppRoutes.resetPassword,
         builder: (context, state) => const ResetPasswordScreen(),
       ),
-      GoRoute(
-        path: AppRoutes.dashboard,
-        builder: (context, state) => const DashboardScreen(),
+      ShellRoute(
+        builder: (context, state, child) => AppShell(
+          location: state.uri.path,
+          child: child,
+        ),
+        routes: [
+          GoRoute(
+            path: AppRoutes.dashboard,
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: DashboardScreen()),
+          ),
+          GoRoute(
+            path: AppRoutes.timeline,
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: TimelineScreen()),
+          ),
+          GoRoute(
+            path: AppRoutes.trends,
+            pageBuilder: (context, state) {
+              final metric = _parseMeasurementType(state.uri.queryParameters['metric']);
+              return NoTransitionPage(
+                key: ValueKey('trends-${metric?.name ?? 'default'}'),
+                child: metric == null
+                    ? const TrendsScreen()
+                    : ProviderScope(
+                        overrides: [
+                          selectedTrendMetricProvider.overrideWith((ref) => metric),
+                        ],
+                        child: const TrendsScreen(),
+                      ),
+              );
+            },
+          ),
+          GoRoute(
+            path: AppRoutes.medications,
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: MedicationsScreen()),
+          ),
+          GoRoute(
+            path: AppRoutes.profile,
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ProfileScreen()),
+          ),
+        ],
       ),
       GoRoute(
         path: AppRoutes.onboarding,
         builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
-        path: AppRoutes.profile,
-        builder: (context, state) => const ProfileScreen(),
-      ),
-      GoRoute(
         path: AppRoutes.baseline,
         builder: (context, state) => const PersonalBaselineScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.timeline,
-        builder: (context, state) => const TimelineScreen(),
       ),
       GoRoute(
         path: AppRoutes.measurements,
@@ -103,23 +149,17 @@ GoRouter createAppRouter({
       ),
       GoRoute(
         path: AppRoutes.addMeasurement,
-        builder: (context, state) => const AddMeasurementScreen(),
+        builder: (context, state) => AddMeasurementScreen(
+          initialType: _parseMeasurementType(state.uri.queryParameters['type']),
+        ),
       ),
       GoRoute(
         path: AppRoutes.dailyCheck,
         builder: (context, state) => const DailyCheckScreen(),
       ),
       GoRoute(
-        path: AppRoutes.trends,
-        builder: (context, state) => const TrendsScreen(),
-      ),
-      GoRoute(
         path: AppRoutes.whatChanged,
         builder: (context, state) => const WhatChangedScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.medications,
-        builder: (context, state) => const MedicationsScreen(),
       ),
       GoRoute(
         path: AppRoutes.addMedication,
