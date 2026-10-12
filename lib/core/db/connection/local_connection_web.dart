@@ -1,5 +1,5 @@
 import 'package:drift/drift.dart';
-import 'package:drift_flutter/drift_flutter.dart';
+import 'package:drift/wasm.dart';
 
 /// Opens the WASM SQLite database on web (browsers cannot use SQLCipher).
 /// Served from `web/sqlite3.wasm` + `web/drift_worker.js`. The [keyProvider]
@@ -7,11 +7,10 @@ import 'package:drift_flutter/drift_flutter.dart';
 Future<QueryExecutor> openPlatformExecutor(
   Future<String> Function() keyProvider,
 ) async {
-  return driftDatabase(
-    name: 'healthbase_local_db',
-    web: DriftWebOptions(
-      sqlite3Wasm: Uri.parse('sqlite3.wasm'),
-      driftWorker: Uri.parse('drift_worker.js'),
-    ),
+  final result = await WasmDatabase.open(
+    databaseName: 'healthbase_local_db',
+    sqlite3Uri: Uri.parse('sqlite3.wasm'),
+    driftWorkerUri: Uri.parse('drift_worker.js'),
   );
+  return result.resolvedExecutor;
 }

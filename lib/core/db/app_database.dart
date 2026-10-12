@@ -1,6 +1,4 @@
 import 'package:drift/drift.dart';
-import 'package:drift_flutter/drift_flutter.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 part 'app_database.g.dart';
@@ -208,18 +206,14 @@ class LocalProfileAccessTable extends Table {
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
-      : super(executor ??
-            driftDatabase(
-              name: 'healthbase_local_db',
-              // Web has no native SQLite: serve the WASM build + worker
-              // from web/sqlite3.wasm and web/drift_worker.js.
-              web: kIsWeb
-                  ? DriftWebOptions(
-                      sqlite3Wasm: Uri.parse('sqlite3.wasm'),
-                      driftWorker: Uri.parse('drift_worker.js'),
-                    )
-                  : null,
-            ));
+      : super(
+          executor ??
+              LazyDatabase(
+                () => throw UnsupportedError(
+                  'AppDatabase requires an active QueryExecutor.',
+                ),
+              ),
+        );
 
   @override
   int get schemaVersion => 3;
